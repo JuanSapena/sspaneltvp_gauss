@@ -1,0 +1,422 @@
+/*  KFSEEKPANELTVP.GSS 	This Draft : July 31, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from the executable MAINPANELTVP.GSS (4th) */
+
+//* Gauss code to perform calculation of time varying parameter models in panel time series as performed in
+//*     Camarero, M., Sapena, J., & Tamarit, C. (2019). Modelling Time-Varying Parameters in Panel Data State-Space Frameworks:
+//*     An Application to the Feldstein–Horioka Puzzle. Computational Economics, 1-28.
+//*
+//*  		This Draft : JUNE 15, 2020 by Juan Sapena (juan.sapena@ucv.es)
+
+@ This GAUSS file controls Kalman filter estimation @
+
+/* ======================================================================= */
+ // GUESS INITIAL PARAMETER VALUES //
+
+sigw = 1*ones(n,1);
+
+th1=sigw;
+
+if k>0;
+
+mua = .1*ones(nn*k,1);
+
+th1 = th1|mua;
+
+endif;
+
+// NEW PART OF THE CODE TO ALLOW FOR COMMON-MEAN PARAMETERS
+
+if kc>0;
+
+mub = .1*ones(1*kc,1);
+
+th1 = th1|mub;
+
+endif;
+
+if autoone $== "n";
+
+phi = 0.5*ones(rxp+rx2,1);
+
+th1 = th1|phi;
+
+endif;
+
+sigv = 2*ones(rxv+rx2,1);
+
+th1 = th1|sigv;
+
+if s>0;
+
+jota1 = 0.001*ones(rxs*s,1);
+
+th1 = th1|jota1;
+
+endif;
+
+
+if sc>0;
+
+jotacom = 0.00001*ones(rxsc*sc,1);
+
+th1 = th1|jotacom;
+
+endif;
+
+
+if common $== "y";
+
+hac2 = 0.01*ones(n,1);
+
+th1 = th1|hac2;
+
+endif;
+
+th = th1;
+
+/* ======================================================================= */
+  @ In general no parts of this section should be changed @
+
+proc startval;     @ This defines starting value for iteration to be th @
+retp(th); endp;
+chsi = zeros(capt,rx);  @ This is where filter inverences will be stored @
+
+P = zeros(capt,rx^2);   @ This is where filter variances will be stored @
+
+aj = zeros(capt,n);
+
+#include kfiltpaneltvp.gss;
+
+/* ================================================================= */
+@ Echo initial parameter values @
+"Starting values as follows";
+ th';
+
+"Value of log likelihood";
+   z = -ofn(th);z;
+   "Do you wish to continue (y or n)?";;
+     zzs = cons;
+       if zzs $== "n";
+          end;
+       endif;
+
+/* ==================================================================== */
+@ Set parameters to use Gauss numerical optimizer @
+
+
+     #include optmum.ext;
+      __btol = 1.e-06; @ This controls convergence criterion for coefficients@
+      __gtol = 1.e-06; @ This controls convergence criterion for gradient @
+      __algr = 1;     @ This chooses BFGS optimization  @
+      __miter = 150;   @ This controls the maximum number of iterations @
+      __output = 1;   @ This causes extra output to be displayed @
+      __covp = 0;     @ This speeds up return from OPTMUM; note that the
+                        program makes a reparameterization to calculate
+                        std. errors @
+
+@ Next call  the GAUSS numerical optimizer @
+        output off;
+        {x, f, g, h} = optmum(&ofn,startval);
+        // output file=junk on;
+	output file = outfile on;
+"";"";"MLE as parameterized for numerical optimization ";
+"Coefficients:";x';
+
+    sigw = x[1:n,1];
+
+    "";"sigw:";;sigw;
+
+if k>0;
+
+    mua = x[n+1:n+nn*k,1];
+
+    "";"mua:";;mua;
+
+endif;
+
+// NEW PART OF THE CODE
+
+if kc>0;
+
+    mub = x[n+nn*k+1:n+nn*k+kc,1];
+
+    "";"mub:";;mub;
+
+endif;
+
+
+if autoone $== "n";
+
+    phi = x[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+
+    "";"phi:";;phi;
+
+endif;
+
+    sigv = x[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+
+    "";"sigv:";;sigv;
+
+if s>0;
+
+	jota1 = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+
+    "";"jota1:";;jota1;
+
+endif;
+
+if sc>0;
+
+	jotacom = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+
+    "";"jotacom:";;jotacom;
+
+endif;
+
+
+if common $== "y";
+
+    hac2 = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+
+    "";"hac2:";;hac2;
+
+endif;
+
+
+"";"Value of log likelihood:";;-f;
+"";"Gradient vector:";g';
+
+h = (hessp(&ofn,x));
+va = eigrs(h);
+call ofn(x);
+
+@if minc(eigrs(h)) <= 0;
+        "Negative of Hessian is not positive definite";
+        "Either you have not found local maximum, or else estimates are up "
+        "against boundary condition.  In latter case, impose the restricted "
+        "params rather than estimate them to calculate standard errors";
+    else;@
+       h = inv(h);      @h = invpd(h)@
+       std = diag(h)^.5;
+       "For vector of coefficients parameterized as follows,";x';
+       "the standard errors are";std';
+       "and the variance-covariance matrix is";
+       format /m3;
+       h;
+       format /m1;
+ @  endif;@
+
+"";"-------------------------------";"";
+"The Kalman filter inferences are";
+tempo~chsi;
+
+"";"";"The Kalman filter variances are";
+tempo~P;
+
+"";"";"The actual and adjusted values for dependent variable are";
+tempo~y~aj;
+
+resid = y - aj;
+
+"";"";"The estimated RESIDUALS when estimating the dependent variable are";
+tempo~resid~aj;
+
+
+//////////////////////////////////////
+// SAVE output to an EXCEL workbook //
+//////////////////////////////////////
+
+outpath = "out/";
+outnam = "kfout_";
+excelfile = outpath$+outnam$+proj;
+filext = ".xlsx";
+
+excelout = excelfile;
+
+sheet = 1;
+sep ="_";
+
+for i (1, countnum, 1);
+excelout = excelout$+sep$+ftos(countriesid[1,i], "%*.*lf", 0, 0);
+endfor;
+
+excelout =  excelout$+filext;
+
+xlsWrite(x, excelout, "b3", 1, 0);
+xlsWrite(std, excelout, "c3", 1, 0);
+
+tstat = x./std;
+xlsWrite(tstat, excelout, "d3", 1, 0);
+
+xstdmat=x~std;
+xrows = rows(x);
+xrowsc = 2*xrows;
+xstd = vecr(xstdmat);
+xlsWrite(xstd, excelout, "f3", 1, 0);
+
+xtstatmat = x~tstat;
+xtstat = vecr(xtstatmat);
+xlsWrite(xtstat, excelout, "g3", 1, 0);
+
+
+#include kfgenexcelouttable.gss;
+
+xlsWriteM(tempo~y~aj~resid, excelout, "i3", 1, 0);
+
+
+// prepare a loop here for more than one unobserved vector
+
+// chsi is ordered as follows
+// var1country1, var1country2,...var1countryn, var2country1, var2country2, etc
+// n is the number of countries
+// k is the number of idiosyncratic fixed parameters mua
+// kc is the number of common fixed parameters mub
+// k1 is dimension of TVP variables
+
+oneschsi = zeros(timer,rx);
+
+"Using both Fixed and varying parameter? (y or n)?";;
+FIXANDVAR = cons;
+
+if FIXANDVAR $== "y";
+
+    "Number of fixed component varying parameters? (number)?";;
+    fcn = con(1,1);
+
+    fixedp0 = ZEROS(timer, fcn*n);
+
+    "Idiosyncratic fixed component for varying parameters? (y or n))?";;
+    IDIOFIX = cons;
+    if IDIOFIX $== "y";
+    // REMINDER: mua = x[n+1:n+nn*k,1];
+
+        muar = reshape (mua, n, k);
+        muars = muar[1:n,1:fcn];
+        vecmuars = vec(muars);
+        vecmuarst = vecmuars';
+
+        fixedp = fixedp0 + vecmuarst;
+	meastvp = measdep[.,1:fcn*n];
+
+    else;
+    // REMINDER: mub = x[n+nn*k+1:n+nn*k+kc,1];
+
+        mubs = mub[1,fcn];
+        vecmubst = zeros(1,fcn*n);
+        for fcnn (1, fcn, 1);
+        mubsi = mubs[1,fcnn];
+            for fcnnn (1, n, 1);
+            //vecmubst[1,(fcn*n-1)+fcnnn] = mubsi;
+            vecmubst[1,(fcn-1)*n+fcnnn] = mubsi;
+            endfor;
+        endfor;
+
+        fixedp = fixedp0 + vecmubst;
+	meastvp = measdepc[.,1:fcn*n];
+endif;
+
+	///////////////////////////////////////
+	// DETERMINISTIC OR INTERACTIVE TREND//
+	///////////////////////////////////////
+
+	"Using trend or interactive parameter? (y or n)?";;
+	INTERACTPAR = cons;
+	if INTERACTPAR $== "y";
+
+		"Number of trend or interactive components? (number)?";;
+		icn = con(1,1);
+	
+		"Positioning of trend or interactive components? (number)?";;
+		icnpos = con(1,1);
+
+		intp0 = ZEROS(timer, icn*n);
+
+		"Idiosyncratic interactive or trend components? (y or n))?";;
+		IDIOINT = cons;
+		if IDIOINT $== "y";
+		// REMINDER: mua = x[n+1:n+nn*k,1];
+
+        muar = reshape (mua, n, k);
+        muars2 = muar[1:n,icnpos:icn+icnpos-1];
+        vecmuars2 = vec(muars2);
+        vecmuars2t = vecmuars2';
+
+        interp = intp0 + vecmuars2t;
+        interpp = interp.*measdep[.,(icnpos-1)*n+1:(icnpos-1+icn)*n];
+                
+		else;
+			// REMINDER: mub = x[n+nn*k+1:n+nn*k+kc,1];
+
+			mubs2 = mub[icnpos:icn+icnpos-1,1];
+			vecmubst2 = zeros(1,icn*n);
+			for icnn (1, icn, 1);
+				mubsi2 = mubs[icnn,1];
+				
+					for icnnn (1, n, 1);
+					vecmubs2t[1,(icn*n-1)+icnn] = mubsi2;
+					endfor;
+			endfor;
+
+        interp = intp0 + vecmubs2t;
+        interpp = interp.*measdepc[.,(icnpos-1)*n+1:(icnpos-1+icn)*n];
+
+		endif;
+        
+        interppp = interpp./meastvp;
+        
+        fixedp = fixedp+interppp;         
+	
+	else;
+	endif;
+	
+	////////////////////////
+	// ADITION UNTIL HERE //
+	////////////////////////
+
+if common $== "y";
+
+	fixedp = fixedp~zeros(timer, 1);
+
+    else;
+
+	endif;
+
+fixedandtvp = chsi + fixedp;
+
+else;
+
+fixedp=zeros (timer,rx);
+
+fixedandtvp = chsi;
+
+endif;
+
+
+xlsWriteM(tempo~chsi~fixedp~fixedandtvp, excelout, "b3", 2, 0);
+
+
+"Plot graphs? (y or n)?";;
+
+PLOTG = cons;
+
+if PLOTG $== "y";
+    
+  "Using Gauss 12 or above? (y or n)?";;
+
+  GAUSS18 = cons;
+
+    if GAUSS18 $== "y";
+
+    #include kfgraphpaneltvp_mod.gss;
+        
+    else;
+        
+    #include kfgraphpaneltvp.gss;
+        
+    endif; 
+
+else;
+
+endif;

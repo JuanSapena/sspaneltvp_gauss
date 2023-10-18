@@ -1,0 +1,72 @@
+/*  DATASPLITNEGPOS.GSS 	This Draft : July 31, 2023 */
+
+/* This file NEEDS TO BE ADAPTED to particular implementations
+// This file is called from the executable MAINPANELTVP.GSS (3rd) */
+
+// INCLUDE HERE THE VARIABLE TO SPLIT
+arraydata = RGDPG_VAR;
+
+arraydatac = cols(arraydata);
+arraydatar = rows(arraydata);
+
+arraydataneg = zeros(arraydatar,arraydatac);
+arraydatapos = zeros(arraydatar,arraydatac);
+
+for arrc (1, arraydatac, 1);
+
+for arrr (1, arraydatar, 1);
+
+  ebe = arraydata[arrr,arrc];
+
+// INCLUDE HERE THE CUT-OFF LEVEL
+  if ebe>0;
+
+        arraydatapos[arrr,arrc]=ebe;
+        arraydataneg[arrr,arrc]=0;
+  else;
+
+        arraydatapos[arrr,arrc]=0;
+        arraydataneg[arrr,arrc]=ebe;
+  endif;
+
+endfor;
+
+endfor;
+
+// GENERATE NEW VARIABLES
+RGDPG_VAR_POS = arraydatapos;
+RGDPG_VAR_NEG = arraydataneg;
+
+// INCLUDE HERE THE VARIABLE TO SPLIT
+arraydata = URATE_GAP;
+
+arraydatac = cols(arraydata);
+arraydatar = rows(arraydata);
+
+arraydataneg = zeros(arraydatar,arraydatac);
+arraydatapos = zeros(arraydatar,arraydatac);
+
+for arrc (1, arraydatac, 1);
+
+for arrr (1, arraydatar, 1);
+
+  ebe = arraydata[arrr,arrc];
+
+// INCLUDE HERE THE CUT-OFF LEVEL
+  if ebe>0;
+
+        arraydatapos[arrr,arrc]=ebe;
+        arraydataneg[arrr,arrc]=0;
+  else;
+
+        arraydatapos[arrr,arrc]=0;
+        arraydataneg[arrr,arrc]=ebe;
+  endif;
+
+endfor;
+
+endfor;
+
+// GENERATE NEW VARIABLES
+URATE_GAP_POS = arraydatapos;
+URATE_GAP_NEG = arraydataneg;

@@ -1,0 +1,388 @@
+/*  KGRAPHPANELTVP.GSS 	This Draft : July 30, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from KFSEEKPANELTVP.GSS (3rd-2) */
+
+/* This file plots output graphics for the SSPANELTVP code
+** for old versions of APTECH GAUSS  (10 and older */
+
+// new;
+// library pgraph;
+// graphset;
+
+////////////////////////////////////////////////
+// Changes current directory to output folder //
+////////////////////////////////////////////////
+
+initdir = cdir(0);
+dbd = "\\out";
+nwdir = initdir$+dbd;
+newdir = ChangeDir(nwdir);
+
+// f_path= "/out/";
+
+/////////////////////////////////////////////////
+// Set GLOBAL CONTROL VARIABLES for all graphs //
+/////////////////////////////////////////////////
+
+_pmcolor = 0|0|0|0|0|0|0|0|15;
+_plwidth = 8;
+_pframe = { 0, 1};
+_pltype = 6;
+_pcolor = { 12, 10, 1, 11, 7};
+_pgrid = { 2, 0};
+_ptitlht = 0.2;                     @ (Controls main title size) @
+// _paxht=7;                        @ (Controls size of axes labels) @
+//_plegctl = 1;                     @ Legend ON @
+_plegctl = { 2 5 1 5 };
+
+//_plegctl = { 2 4 1 5 };
+@This example creates a smaller legend and positions it 2.5 4 inches from the left and 1 5 inch from the bottom@
+
+// _plegstr = "legend A\000legend B\000Legend C";
+@ To define LEGENDS for each line for a graph displaying multiple series @
+_plegstr = "TEST";
+
+//_protate=1;   @scalar. if 0, no rotation, if 1, plot will be rotated 90 degrees. Default is 0@
+
+/* pagesiz 2×1 vector, size of the graph in inches on the printer output.
+Maximum size is 9.0×6.855 inches (unrotated) or 6.855×9.0 inches (rotated).
+if this is 0, the maximum size will be used. Default is 0 */
+
+//_pdate = 0;
+
+// To define the SCALE of the axes - example xtics(1970,2000,5,5) //
+
+//xtics(timeri,timerf,1,1);
+//ytics(-10,+10,1,1);
+//fonts("simplex simgrma");
+
+
+////////////////////////////////////
+//  PLOTS TIME VARYING PARAMETERS //
+////////////////////////////////////
+
+xSeries = PERIOD;
+
+// create LABELS for COUNTRY VARIABLES and PARAMETERS
+
+titlevar = "Variable: ";
+titlepar = "Mean and Varying Parameter: ";
+
+graphfile = proj$+"_tvp";
+
+filext = ".tkf";
+filext1 = ".eps";
+
+varlab1="M3 Velocity";
+varlab2="Short term interest rate";
+varlaball=varlab1$|varlab2;
+
+// Here to create filename text pat using country names
+
+outparpart =  "c";
+
+for i (1, countnum, 1);
+outparpart = outparpart$+sep$+ftos(countriesid[1,i], "%*.*lf", 0, 0);
+endfor;
+
+for i1(1, k1, 1);
+// k1 is dimension of TVP variables
+
+// To avoid that GAUSS overwrites the graphics.tkf file
+// bmp format also available
+
+graphout = graphfile$+ftos(i1, "%*.*lf", 0, 0)$+outparpart$+filext;
+
+_ptek=graphout;
+
+//_pdate = 0;
+
+///////////////////////////////////////
+/*  0 Black     8 Dark Grey
+    1 Blue      9 Light Blue
+    2 Green     10 Light Green
+    3 Cyan      11 Light Cyan
+    4 Red       12 Light Red
+    5 Magenta   13 Light Magenta
+    6 Brown     14 Yellow
+    7 Grey      15 White             */
+///////////////////////////////////////
+
+_pcolor = ZEROS(3,1);
+_pcolor[1] = 1;
+_pcolor[2] = 4;
+_pcolor[3] = 0;
+
+begwind;
+
+window(ceil(n/2),2,0);             @ creates a rxc panel for graphs @
+
+    for i2(1, n, 1);
+    // n is number of countries
+    setwind(i2);
+
+    ytvps = ZEROS(capt, 3);
+    ytvps[., 1] = fixedandtvp[., n*(i1-1)+i2];
+    ytvps[., 2] = fixedp[., n*(i1-1)+i2];
+    ytvps[., 3] = ZEROS(capt,1);
+
+    // XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+
+    title(titlepar$+"N."$+ftos(i1, "%*.*lf", 0, 0)$+" Country: "$+countryname[.,i2]);
+
+    xlabel("Time");
+    ylabel("Mean and TVP");
+
+// THIS IS A PROVISIONAL SOLUTION
+// _plegstr = "legend A\000legend B\000Legend C";
+_plegstr = "Total Varying Parameter\000Fixed Parameter\000Zero Line";
+
+    XY(xSeries, ytvps);
+
+    nextwind;
+
+    endfor;
+
+    endwind;
+
+endfor;
+
+
+/////////////////////////////
+//  PLOTS TIME SERIES DATA //
+/////////////////////////////
+
+titlevar = "Variable: ";
+
+for i3(1, seriesnum, 1);
+// seriesnum is the number of series
+
+@ TO DO SET COUNTRIES - LOOP@
+
+graphfile =  proj$+"_cvar_";
+
+filext = ".tkf";
+
+graphout = graphfile$+ftos(i3, "%*.*lf", 0, 0)$+filext;
+
+_ptek=graphout;
+
+_pcolor = ZEROS(2,1);
+_pcolor[1] = 1;
+_pcolor[2] = 4;
+
+    begwind;
+    window(ceil(n/2),2,0);             @ creates a panel for graphs @
+
+    for i4(1, n, 1);
+    // n is number of countries
+    setwind(i4);
+
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = DATATOPLOT[.,n*(i3-1)+i4];
+    ySeries[., 2] = ZEROS(capt,1);
+
+// XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+
+//  title(titlevar$+ftos(i3, "%*.*lf", 0, 0)$+countrylab[.,i4]);
+    title(titlevar$+datatoplotlab[.,i3]$+countryname[.,i4]);
+
+    xlabel("Time");
+//  ylabel(titlevar$+ftos(i3, "%*.*lf", 0, 0)$+countrylab[.,i4]);
+    ylabel(titlevar$+datatoplotlab[.,i3]$+countrylab[.,i4]);
+
+    _plegctl = 1; /*legend on */
+    _plegctl = 0; /*legend on */
+
+// THIS IS A PROVISIONAL SOLUTION
+// _plegstr = "legend A\000legend B\000Legend C";
+_plegstr = "Time Series\000Zero Line";
+
+    //_plegctl = { 2 4 1 5.25 }; @This example creates a smaller legend and positions it 2.5 4 inches from the left and 1 5 inch from the bottom@
+
+    // _plegstr = "Gross Domestic Investment ratio to GDP\000Gross Domestic Saving ratio to GDP";
+
+    XY(xSeries, yseries);
+
+    nextwind;
+
+    endfor;
+
+    endwind;
+
+endfor;
+
+////////////////////////////////////
+//  PLOTS TIME SERIES COMMON DATA //
+////////////////////////////////////
+
+titlevar = "Variable: ";
+
+for i3c(1, series2num, 1);
+// series2num is the number of series
+// n is number of countries
+
+graphfile =  proj$+"_var_";
+
+filext = ".tkf";
+
+graphout = graphfile$+ftos(i3c, "%*.*lf", 0, 0)$+filext;
+
+_ptek=graphout;
+
+_pcolor = ZEROS(2,1);
+_pcolor[1] = 1;
+_pcolor[2] = 4;
+
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = DATATOPLOT2[.,n*(i3c-1)+1];
+    ySeries[., 2] = ZEROS(capt,1);
+
+// XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+
+    title(titlevar$+datatoplot2lab[.,i3c]);
+
+    xlabel("Time");
+    ylabel(titlevar$+datatoplot2lab[.,i3c]);
+
+    _plegctl = 1; /*legend on */
+    _plegctl = 0; /*legend on */
+
+// THIS IS A PROVISIONAL SOLUTION
+// _plegstr = "legend A\000legend B\000Legend C";
+_plegstr = "Time Series\000Zero Line";
+
+    //_plegctl = { 2 4 1 5.25 }; @This example creates a smaller legend and positions it 2.5 4 inches from the left and 1 5 inch from the bottom@
+
+    // _plegstr = "Gross Domestic Investment ratio to GDP\000Gross Domestic Saving ratio to GDP";
+
+    XY(xSeries, yseries);
+
+
+endfor;
+
+
+//////////////////////
+// PLOTS RESIDUALS  //
+//////////////////////
+
+_plctrl = {-1, 0}; @ when _plctrl = -1 only individual values are plotted @
+
+xSeries = PERIOD;
+
+titleresid = "Residuals: ";
+
+graphfile =  proj$+"resid";
+
+filext = ".tkf";
+
+graphout = graphfile$+filext;
+
+//cmd_string = "-cf="$+f_path$+graphout;
+//graphprt(cmd_string);
+
+_ptek=graphout;
+
+_pcolor = ZEROS(2,1);
+_pcolor[1] = 1;
+_pcolor[2] = 4;
+
+    begwind;
+    window(ceil(n/2),2,0);             @ creates a panel for graphs @
+
+    for i5(1, n, 1);
+    // n is number of countries
+    setwind(i5);
+
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = resid[.,i5];
+    ySeries[., 2] = ZEROS(capt,1);
+
+// XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+
+    title(titleresid$+countrylab[.,i5]);
+    xlabel("Time");
+    ylabel(titleresid$+countrylab[.,i5]);
+
+    _plegctl = 1; /*legend on */
+    _plegctl = 0; /*legend on */
+
+_plegstr = "Residuals\000Zero Line";
+
+    XY(xSeries, yseries);
+
+    nextwind;
+
+    endfor;
+
+    endwind;
+
+    ////////////////////////////////
+    // PLOTS RESIDUALS VS FITTED //
+    ////////////////////////////////
+
+      _plctrl = {-1, 0}; @ when _plctrl = -1 only individual values are plotted @
+
+//_pgrid = { 2, 0};
+//_plctrl = { 1, 1, 0, 0 }; /* 2 curves w/symbols, 2 without */
+//_pltype = { 1, 2, 6, 6 }; /* dashed, dotted, solid lines */
+//_pstype = { 1, 2, 0, 0 }; /* symbol types circles, squares */
+//_pcross = { 0, 0};
+
+    xSeriesm = aj;
+
+    titleresidvs = "Residuals Vs Fitted values: ";
+    titleresid = "Residuals: ";
+
+    graphfile =  proj$+"residvsfit";
+
+    filext = ".tkf";
+    filext2 = ".eps";
+
+    graphout = graphfile$+filext;
+    _ptek=graphout;
+
+    //cmd_string = "-c=2 -cf=/Users/MyUserName/Documents/pqg_cos.eps";
+    //cmd_string = "-cf="$+f_path$+graphout;
+    //graphprt(cmd_string);
+
+    _pcolor = ZEROS(2,1);
+    _pcolor[1] = 1;
+    _pcolor[2] = 4;
+
+        begwind;
+        window(ceil(n/2),2,0);             @ creates a panel for graphs @
+
+        for i5(1, n, 1);
+        // n is number of countries
+        setwind(i5);
+
+        xSeries = ZEROS(capt, 1);
+        xSeries = xSeriesm[.,i5];
+
+        ySeries = ZEROS(capt, 2);
+        ySeries[., 1] = resid[.,i5];
+        ySeries[., 2] = ZEROS(capt,1);
+
+    // XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+
+        title(titleresidvs$+countrylab[.,i5]);
+        xlabel("Fitted values");
+        ylabel(titleresid$+countrylab[.,i5]);
+
+        _plegctl = 1; /*legend on */
+        _plegctl = 0; /*legend on */
+
+    _plegstr = "Residuals\000Zero Line";
+
+        XY(xSeries, yseries);
+
+        nextwind;
+
+        endfor;
+
+        endwind;
+
+// Restores initial directory to main folder
+newdir = ChangeDir(initdir);

@@ -1,0 +1,257 @@
+/*  CONSOLEPANELTVP.GSS 	This Draft : July 31, 2023 */
+
+//////////////////////////////////////////////////////////////////
+// THIS PART NEEDS TO BE ADAPTED TO THE CONCRETE IMPLEMENTATION //
+//////////////////////////////////////////////////////////////////
+
+"Countries to be analised:"
+ 
+ allcountryconsole;
+
+"Number of countries? ";;
+
+countnum = con(1,1);
+
+"Countries identifyers?
+";;;
+
+countriesid = con(1,countnum);
+
+@  CHOOSE STARTING YEAR @
+
+   "SELECT STARTING PERIOD:"
+    period5in;
+
+    "Initial Period? ";;
+
+     timeri = con(1,1);
+
+@  CHOOSE ENDING YEAR @
+
+   "SELECT ENDING PERIOD:"
+   period5fin;
+
+    "Final Period? ";;
+
+     timerf = con(1,1);
+
+
+timer = timerf-timeri+1;
+
+timer =  (timerf-timeri)+1;
+
+
+@  Set Kalman filter control parameters @
+
+// n is dimension of observed vector, in this case the NUMBER OF COUNTRIES
+
+    n =  countnum;
+
+// k is dimension of exogenous (IDIOSYNCRATIC-MEAN) variables (NUMBER OF REGRESSORS)
+
+    "Dimension of fixed-parameter (IDIOSYNCRATIC-MEAN) exogenous variables (number)?";;
+
+    FIXEDREGRESSORS = con(1,1);
+
+    k=FIXEDREGRESSORS;
+
+@ nn=n when single-country parameters allowed else nn=n/n=1 @
+
+    "Single-country parameters allowed? (y or n)?";;
+
+    SINGLEPAR = cons;
+
+    if singlepar $== "y";
+
+	nn=n;
+
+    else;
+
+	nn=1;
+
+	endif;
+
+
+// kc is dimension of exogenous (COMMON-MEAN) variables (NUMBER OF REGRESSORS)
+
+    "Dimension of fixed-parameter COMMON-MEAN) exogenous variables (number)?";;
+
+    COMMONFIXEDREGRESSORS = con(1,1);
+
+    kc=COMMONFIXEDREGRESSORS;
+
+// k1 is dimension of TVP variables
+
+    "Dimension of TVP exogenous variables (number)?";;
+
+    TVPREGRESSORS = con(1,1);
+
+    k1=TVPREGRESSORS;
+
+// rx1 is dimension of country-specific unobservable vector
+
+    rx1 = n*k1;
+
+// rx2 is dimension of common factor rx2=1 if it exists
+
+"Common Unobservable Factor? (y or n)?";;
+    COMMON = cons;
+
+    if common $== "y";
+
+	rx2=1;
+
+    else;
+
+	rx2=0;
+
+	endif;
+
+
+// rx is dimension of state space
+
+	    rx = rx1+rx2;
+
+// rxp, rxv and rxs are dimension of phi, sigv and jota
+
+// Their possible values are
+// a) rx1 (n*k1, the dimension of the state-space when no commmon factor is present),
+// b) n
+// c) k1
+// d) 1
+// e) Any of them plus rx2=1 when common facto is present
+
+
+"Common PHI for all countries? (y or n)?";;
+    PHIN = cons;
+
+    if PHIN $== "y";
+
+	rxpn = 1;
+
+    else;
+
+	rxpn = n;
+
+	endif;
+
+"Common PHI for all regressors? (y or n)?";;
+    PHIK1 = cons;
+
+    if PHIK1 $== "y";
+
+	rxpk = 1;
+
+    else;
+
+	rxpk = k1;
+
+	endif;
+
+    rxp=rxpn*rxpk;
+
+"Common SIGV for all countries? (y or n)?";;
+    SIGVN = cons;
+
+    if SIGVN $== "y";
+
+	rxvn = 1;
+
+    else;
+
+	rxvn = n;
+
+	endif;
+
+"Common SIGV for all regressors? (y or n)?";;
+    SIGVK1 = cons;
+
+    if SIGVK1 $== "y";
+
+	rxvk = 1;
+
+    else;
+
+	rxvk = k1;
+
+	endif;
+
+	rxv=rxvn*rxvk;
+
+
+// s is dimension of state-equation IDIOSYNCRATIC-PARAMETER exogenous variables
+
+    "State Transition IDIOSYNCRATIC-PARAMETER Variables (number)?";;
+   	STATEV = con(1,1);
+   	s=STATEV;
+
+"Common JOTA for all countries? (y or n)?";;
+    JOTAN = cons;
+
+    if JOTAN $== "y";
+
+	rxsn = 1;
+
+    else;
+
+	rxsn = n;
+
+	endif;
+
+"Common JOTA for all regressors? (y or n)?";;
+    JOTAK1 = cons;
+
+    if JOTAK1 $== "y";
+
+	rxsk = 1;
+
+    else;
+
+	rxsk = k1;
+
+	endif;
+
+	rxs=rxsn*rxsk;
+
+
+// sc is dimension of state-equation COMMON-PARAMETER exogenous variables
+
+    "State Transition COMMON-PARAMETER Variables (number)?";;
+   	STATEVC = con(1,1);
+   	sc=STATEVC;
+
+"Common JOTACOM for all regressors? (y or n)?";;
+    JOTACOMK1 = cons;
+
+    if JOTACOMK1 $== "y";
+
+	rxsck = 1;
+
+    else;
+
+	rxsck = k1;
+
+	endif;
+
+    rxsc=rxsck;
+
+
+// phi is the autoregressive parameter of unobserved variables
+
+    "Set PHI to 1? (y or n)";;
+
+     autoone = cons;
+
+   if autoone $== "y";
+
+    phione=0;
+
+    phi=1*ones(rxp+rx2,1);
+
+   else;
+
+    phione=1;
+
+   endif;
+
+

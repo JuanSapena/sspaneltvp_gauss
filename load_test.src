@@ -1,0 +1,37 @@
+proc (0) = createDecFile(vnames, decfile);
+	local nvars, range, tmp;
+	
+	output file = ^decfile reset;
+	
+	for i(1, cols(vnames), 1);
+		print "declare " vnames[i] " ?= 0;";
+	endfor;
+	
+	output off;
+endp;
+
+//This procedure assumes that: the first
+//row contains string variable names,
+//and that you want to load all columns
+proc (0) = xlsLoadVars(fname);
+	local x, nvars, range, vnames, i, ret, firstvar;
+	
+	//To skip first column (i.e. to not load a date variable)
+	//assign this a value of 2
+	firstvar = 1;
+	
+	//read all rows of Excel file into 'x' at once
+	x = xlsReadM(fname, "A2", 1, "");
+	
+	//Read in variable names
+	nvars = cols(x);
+	range = xlsMakeRange(1|1, 1|nvars);
+	vnames = xlsReadSA(fname, range, 1, "");
+	
+	//loop through each variable in the dataset
+	//and create a global variable for each
+	//variable in the dataset
+	for i(firstvar, nvars, 1);
+		ret = varput(x[.,i], vnames[i]);
+	endfor;
+endp;

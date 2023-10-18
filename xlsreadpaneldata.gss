@@ -1,0 +1,237 @@
+/*  XLSREADPANELDATA.GSS 	This Draft : July 31, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from the executable MAINPANELTVP.GSS (1st) */
+
+/* xlsGetSheetCount Gets the number of sheets in an Excel spreadsheet */
+
+nsheetsdata = xlsGetSheetCount(inputdatafile);
+
+variablesnum = nsheetsdata - 1 ;
+
+//////////////////////////////////////////////////////
+// Load the string DATA TIMESERIES NAMES from cells //
+//////////////////////////////////////////////////////
+
+alldatalab = "";
+
+for i (1, variablesnum, 1);
+    readdatalab = xlsReadSA(inputdatafile, "A2:A2", i+1, "");
+	alldatalab = alldatalab$~readdatalab;
+endfor;
+
+alldatadescr = "";
+
+for i (1, variablesnum, 1);
+    readdatadescr = xlsReadSA(inputdatafile, "B1:B1", i+1, "");
+	alldatadescr = alldatadescr$~readdatadescr;
+endfor;
+
+alldatadescr = alldatadescr[1,2:variablesnum+1];
+
+alldatalab = alldatalab[1,2:variablesnum+1];
+alldatalablag = alldatalab$+"_LAG";
+alldatalabdif = alldatalab$+"_DIF";
+alldatalablog = alldatalab$+"_LOG";
+
+matdatalab = "mat"$+alldatalab;
+matdatalablag = matdatalab$+"_LAG";
+matdatalabdif = matdatalab$+"_DIF";
+matdatalablog = matdatalab$+"_LOG";
+
+alldatalabt = alldatalab';
+matdatalabt = matdatalab';
+
+alldatadescrt = alldatadescr';
+
+/////////////////////////////////////////////
+
+alldatanum = seqa(1,1,variablesnum);
+
+/* "alldataconsole" string matrix stores string variable names for console */
+alldataconsole = ftos(alldatanum[1,1], "%*.*lf", 0, 0)$~alldatalabt[1,1];
+
+for i (2, variablesnum, 1);
+	alldataconsole =alldataconsole$|ftos(alldatanum[i,1], "%*.*lf", 0, 0)$~alldatalabt[i,1];
+endfor;
+
+alldataconsole = alldataconsole$~alldatadescrt;
+
+/////////////////////////////////////////////
+// CREATE A DECLARATION FILE FOR VARIABLES //
+/////////////////////////////////////////////
+
+#include load_test.src;
+
+myVars = alldatalab$~alldatalablag$~alldatalabdif$~alldatalablog$~matdatalab$~matdatalablag$~matdatalabdif$~matdatalablog;
+
+decfileproj= "mypaneltvp_"$+proj$+".dec";
+
+"Create a new declaration file? (y or n)?";;
+
+    DECFILE = cons;
+
+    if DECFILE $== "y";
+
+        createDecFile(myVars, "mypaneltvp_project.dec");
+
+    else;
+
+	endif;
+
+#include mypaneltvp_project.dec;
+
+//////////////////////////////////////////////
+// Load the string COUNTRY NAMES from cells //
+//////////////////////////////////////////////
+
+/* Number of countries is defined in sheet 1 of the Excel spreadsheet */
+
+countriesnum = xlsreadm(inputdatafile,"c9:c9",1,0);
+
+/* xlsMakeRange(row,col) to position cell for last country */
+lastcountrynamcell = xlsMakeRange(3,1+countriesnum);
+countrynamrange = "B3:"$+lastcountrynamcell;
+
+/* xlsMakeRange(row,col) to position cell for last country */
+lastcountrylabcell = xlsMakeRange(4,1+countriesnum);
+countrylabrange = "B4:"$+lastcountrylabcell;
+
+/* Load the string column names from cells in sheet 2 */
+
+allcountrynam = xlsReadSA(inputdatafile, countrynamrange, 2, "");
+
+allcountrylab = xlsReadSA(inputdatafile, countrylabrange, 2, "");
+
+allcountrynum = seqa(1,1,countriesnum);
+
+allcountrynamt = allcountrynam';
+
+/* "allcountryconsole" string matrix stores string country names for console */
+allcountryconsole = ftos(allcountrynum[1,1], "%*.*lf", 0, 0)$~allcountrynamt[1,1];
+
+for i (2, countriesnum, 1);
+	allcountryconsole =allcountryconsole$|ftos(allcountrynum[i,1], "%*.*lf", 0, 0)$~allcountrynamt[i,1];
+endfor;
+
+///////////////////////////////////
+// Load the PERIOD TIME interval //
+///////////////////////////////////
+
+periodsnum = xlsreadm(inputdatafile,"c7:c7",1,0);
+
+/* xlsMakeRange(row,col) to position cell for final period */
+lastperiodcell = xlsMakeRange(4+periodsnum,1);
+allperiodrange = "A5:"$+lastperiodcell;
+
+@  TIME COUNTER @
+matPERIOD = xlsreadm(inputdatafile,allperiodrange,2,0);
+timeALL = rows(matPERIOD);
+PERIODALL = matPERIOD[1:timeALL, 1];
+
+/* "allperiodsconsole" string matrix stores string periods for console */
+allperiodsnum = seqa(1,1,timeALL);
+
+allperiodsconsole = ftos(allperiodsnum[1,1],"%*.*lf",0,0)$~ftos(matperiod[1,1],"%*.*lf",0,0);
+
+for i (2, timeALL, 1);
+	allperiodsconsole =allperiodsconsole$|ftos(allperiodsnum[i,1], "%*.*lf", 0, 0)$~ftos(matperiod[i,1],"%*.*lf",0,0);
+endfor;
+
+period5in = allperiodsconsole[1:5,.];
+period5fin = allperiodsconsole[timeALL-5:timeALL,.];
+
+/////////////////////////////////////////////////
+// Invokes CONSOLEPANELTVP.GSS for the console //
+/////////////////////////////////////////////////
+
+#include consolepaneltvp.gss;
+
+/* I AM NOT SURE IF THIS IS NEEDED IN THE CURRENT VERSION */
+
+capt = timer;                   @ capt is the sample size @
+
+period = matPERIOD[timeri:timerf, 1];
+
+//////////////////////////////////////////////
+// Load the string COUNTRY NAMES from cells //
+//////////////////////////////////////////////
+
+countrylab = "";
+
+for i (1, n, 1);
+	countrylab = countrylab$~allcountrylab[., countriesid[1,i]];
+endfor;
+
+countrylab = countrylab[1,2:n+1];
+
+countryname = "";
+
+for i (1, n, 1);
+	countryname = countryname$~allcountrynam[., countriesid[1,i]];
+endfor;
+
+countryname = countryname[1,2:n+1];
+
+//////////////////////////////////////////////////////////////////
+// Generates the time series for selected COUNTRY-PERIOD sample //
+//////////////////////////////////////////////////////////////////
+
+zerosmat = zeros(timer, countnum);
+
+///////////////////////////////////////////////////////
+// Load the MATRICES FOR TIMESERIES NAMES from cells //
+///////////////////////////////////////////////////////
+
+lastdatacell = xlsMakeRange(4+periodsnum,1+countriesnum);
+lastdatacell_lag = xlsMakeRange(4+periodsnum-1,1+countriesnum);
+
+datarange = "B5:"$+lastdatacell;
+datarange_lag = "B5:"$+lastdatacell_lag;
+
+
+for i (1, variablesnum, 1);
+
+	matvar = xlsreadm(inputdatafile,datarange,i+1,0);
+	matvarlag = zeros(1,countriesnum)|xlsreadm(inputdatafile,datarange_lag,i+1,0);
+	matvardif = matvar-matvarlag;
+//	matvarlog = ln(matvar);
+	
+	
+	// Convert all values in 'x' (matvar) that are equal to a character dot
+	// to be equal to a missing value and assign this into 'newx'
+
+	matvar = miss(matvar, "..");
+	matvarlag = miss(matvarlag, "..");
+	matvardif = miss(matvardif, "..");
+//	matvarlog = miss(matvarlog, "..");
+	
+	varsample = zerosmat;
+    varsamplelag = zerosmat;
+    varsampledif = zerosmat;
+//  varsamplelog = zerosmat;
+
+		for i2 (1, countnum, 1);
+		
+			varsample[.,i2] = matvar[timeri:timerf, countriesid[1,i2]];
+			varsamplelag[.,i2] = matvarlag[timeri:timerf, countriesid[1,i2]];
+			varsampledif[.,i2] = matvardif[timeri:timerf, countriesid[1,i2]];
+//			varsamplelog[.,i2] = matvarlog[timeri:timerf, countriesid[1,i2]];
+	
+		endfor;
+	
+	ret = varput(matvar,matdatalab[1,i]);
+    ret = varput(matvarlag,matdatalab[1,i]$+"_LAG");
+    ret = varput(matvardif,matdatalab[1,i]$+"_DIF");
+//  ret = varput(matvarlog,matdatalab[1,i]$+"_LOG");
+
+	ret = varput(varsample,alldatalab[1,i]);
+	ret = varput(varsamplelag,alldatalab[1,i]$+"_LAG");
+	ret = varput(varsampledif,alldatalab[1,i]$+"_DIF");
+//	ret = varput(varsamplelog,alldatalab[1,i]$+"_LOG");
+
+endfor;
+
+coln = cols(matvar);        	@Returns the number of columns in matrix@
+rown = rows(matvar);   	    	@Returns the number of rows in matrix x@
+

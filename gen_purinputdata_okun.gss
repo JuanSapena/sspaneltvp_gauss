@@ -1,0 +1,21 @@
+/*  GEN_PURINPUTDATA_OKUN.GSS 	This Draft : July 31, 2023 */
+
+/* This file NEEDS TO BE SLIGHTLY ADAPTED to particular implementations
+// This file is called from the executable MAINPANELTVP.GSS (5th) */
+
+excelfile = "DATAPANEL_OKUN";
+excelfile = "out/purinputdata_okun";
+filext = ".xlsx";
+
+exceldata_pur = excelfile$+filext;
+
+xlsWrite(resid, exceldata_pur, "b3", 1, 0);
+
+xlsWrite(RGDPG, exceldata_pur, "b3", 2, 0);
+
+xlsWrite(URATE, exceldata_pur, "b3", 3, 0);
+
+xlsWrite(URATE_DIF, exceldata_pur, "b3", 4, 0);
+
+xlsWrite(NAWRU, exceldata_pur, "b3", 5, 0);
+

@@ -1,0 +1,540 @@
+/*  KGRAPHPANELTVP_MOD.GSS 	This Draft : July 30, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from KFSEEKPANELTVP.GSS (3rd-1) */
+
+/* This file plots output graphics for the SSPANELTVP code
+** for Aptech Gauss versions 12 and above */
+
+// new;
+// library pgraph;
+// graphset;
+
+////////////////////////////////////////////////
+// Changes current directory to output folder //
+////////////////////////////////////////////////
+
+initdir = cdir(0);
+dbd = "\\out";
+nwdir = initdir$+dbd;
+newdir = ChangeDir(nwdir);
+
+// f_path= "/out/";
+
+/////////////////////////////////////////////////
+// Settings for all graphs                     //
+/////////////////////////////////////////////////
+
+/* Declare Plot control structure named pltCtl */
+struct plotControl pltCtl;
+
+/* Initialize plotControl structure with defaults for an
+** xy' graph */
+pltCtl = plotGetDefaults("xy");
+
+/*
+** Note that this sets all default colors
+** no need for any translation
+** _pmcolor = 0|0|0|0|0|0|0|0|15;
+*/
+
+/*
+** This sets line thickness to 8
+** _plwidth = 8;
+*/
+
+/* Sets the color, thickness and style for the lines on an XY 
+** or contour plot */
+
+// plotSetLinePen(&pltCtl, 8);
+plotSetLinePen(&pltCtl, 1);
+
+/*
+** This controls the outline around
+** the plot it sets the frame off
+** and the tick marks on
+** _pframe = { 0, 1};
+*/
+
+/*
+** This sets line style to solid
+** This is also the default setting
+** _pltype = 6;
+*/
+
+/*
+** Sets line colors
+** 12 == red
+** 10 == Light green
+** 1 == Blue
+** 11 == Light Cyan
+** 7 == Grey
+** _pcolor = { 12, 10, 1, 11, 7};
+**
+** Note this is actually updated in loop
+** _pcolor = ZEROS(3,1);
+** _pcolor[1] = 1;
+** _pcolor[2] = 4;
+** _pcolor[3] = 0;
+*/
+
+//clrs = "Red"$|"Light green"$|"Blue"$|"Light Cyan"$|"Grey";
+clrs = "Blue"$|"Red"$|"Black";
+
+/* Sets the line colors for a graph */
+plotSetLineColor(&pltCtl, clrs);
+
+/*
+** Set major grid marks on
+** with fine dotted lines
+**  _pgrid = { 2, 0};
+*/
+
+/* Controls the thickness, color, and style for the grid lines */
+plotSetGridPen(&pltCtl, "major", 1, "black", 3);
+
+/*
+** Sets height of title characters in inches
+** This is outdated and we now set font size
+** _ptitlht = 0.2;                     @ (Controls main title size) @
+*/
+
+title_font = "Arial";
+// title_size = 16;
+title_size = 8;
+
+// Font settings (added Aug-1 JSB)
+font_name = "Helvetica Neue";
+font_color = "#666666";
+title_size = 6;
+label_size = 6;
+legend_size = 6;
+
+/* Sets the fonts for one or more elements of a graph */
+plotSetFonts(&pltCtl, "all", title_font, title_size);
+
+// _paxht=7;                        @ (Controls size of axes labels) @
+//_plegctl = 1;
+// Legend settings
+/*
+** Legend position
+** Uses plot coordinates and default font size
+** _plegctl = { 2 5 1 5 };
+** _plegctl = { 2 4 1 5 };
+** Notes: plotSetLegend sets coordinates of top, left corner
+**        _plegctl sets coordinates of lower, left corner
+**
+** We can set the legend string at the same time
+** _plegstr = "TEST";
+** To define LEGENDS for each line for a graph displaying multiple series
+** _plegstr = "legend A\000legend B\000Legend C";
+** _plegstr = "Total Varying Parameter\000Fixed Parameter\000Zero Line";
+*/
+//_pleg_str = "Total Varying Parameter"$|"Fixed Parameter"$|"Zero Line";
+
+// Set labels, location, and orientation of legend
+//label = "sample A"$|"sample B";
+label = "Total Varying Parameter"$|"Fixed Parameter"$|"Zero Line";
+location = "top right";
+orientation = 0;
+// plotSetLegend(&pltCtl, label, location, orientation);
+
+// plotSetLegend(&pltCtl, "TEST", 1|5); (I changed this to above)
+
+// Font settings (added Aug-1 JSB)
+plotSetLegendFont(&pltCtl,  font_name, legend_size, font_color);
+/*
+** Set x and y labels
+**
+** xlabel("Time");
+** ylabel("Mean and TVP");
+*/
+x_lab = "Time";
+plotSetXlabel(&pltCtl, x_lab);
+y_lab = "Mean and TVP";
+plotSetYLabel(&pltCtl, y_lab);
+
+////////////////////////////////////
+//  PLOTS TIME VARYING PARAMETERS //
+////////////////////////////////////
+plotClearLayout();
+plotOpenWindow();
+
+/*
+** Create LABELS for COUNTRY VARIABLES and PARAMETERS
+*/
+titlevar = "Variable: ";
+titlepar = "Mean and Varying Param.: ";
+
+/*
+** Create labels for variables
+*/
+varlab1 = "M3 Velocity";
+varlab2 = "Short term interest rate";
+varlaball = varlab1$|varlab2;
+
+/*
+** Saving information
+** File names
+*/
+graphfile = proj$+"_tvp";
+filext = ".plot";
+filext2 = ".pdf";
+filext3 = ".png";
+
+// Here to create filename text part using country names
+outparpart =  "c";
+for i (1, countnum, 1);
+    outparpart = outparpart$+sep$+ftos(countriesid[1,i], "%*.*lf", 0, 0);
+endfor;
+
+/*
+** Loop through TVP Variables
+*/
+// Set X-series
+xSeries = PERIOD;
+
+for i1(1, k1, 1);
+    // k1 is dimension of TVP variables
+    
+    // To avoid that GAUSS overwrites the graphics.tkf file
+    // bmp format also available
+    graphout = graphfile $+ ftos(i1, "%*.*lf", 0, 0) $+ outparpart $+ filext;
+    graphout2 = graphfile $+ ftos(i1, "%*.*lf", 0, 0) $+ outparpart $+ filext2;
+    graphout3 = graphfile $+ ftos(i1, "%*.*lf", 0, 0) $+ outparpart $+ filext3;
+    
+    // Open window
+    plotOpenWindow();
+    
+    for i2(1, n, 1);
+        
+    // Set grid layout
+    /*  plotlayout(gRows, gCols, index)
+         g_rows The number of rows in the graph grid.
+         g_cols The number of columns in the graph grid.
+         idx The cell in which to place the next graph, walking along the rows.
+    */
+        plotLayout(ceil(n/2), 2, i2);
+        
+        // Y-series
+        ytvps = ZEROS(capt, 3);
+        ytvps[., 1] = fixedandtvp[., n*(i1-1)+i2];
+        ytvps[., 2] = fixedp[., n*(i1-1)+i2];
+        ytvps[., 3] = ZEROS(capt, 1);
+        
+        /*
+        ** Set title and axes labels
+        */
+        title_str = titlepar$+"N."$+ftos(i1, "%*.*lf", 0, 0)$+" Country: "$+countryname[.,i2];
+        plotSetTitle(&pltCtl, title_str);
+        
+        // Plot graph
+        minx = minc(xseries);
+        maxx = maxc(xseries);
+        miny = minc(minc(ytvps));
+        maxy = maxc(maxc(ytvps));
+        xRange = { minx, maxx };
+        yRange = { miny, maxy };
+        plotSetYRange(&pltCtl, miny, maxy);
+        plotXY(pltCtl, xSeries, ytvps);
+        
+    endfor;
+    plotSave(graphout);
+    //plotSave(graphout2, 8.5|11);
+    plotSave(graphout2, 6.66|6.66, "in", 300);
+    plotSave(graphout3, 640|640, "px");
+    //plotSave(graphout3, 500|350, "px");
+        
+endfor;
+
+/*
+** Loop through time series variables
+*/
+
+/////////////////////////////
+//  PLOTS TIME SERIES DATA //
+/////////////////////////////
+plotClearLayout();
+plotOpenWindow();
+
+titlevar = "Variable: ";
+
+/*
+** Turn off legend
+*/
+for i3(1, seriesnum, 1);
+    // seriesnum is the number of series
+    
+    @ TO DO SET COUNTRIES - LOOP@
+    /*
+    ** Set up file saving names
+    */
+    graphfile =  proj$+"_cvar_";
+    filext = ".plot";
+    graphout = graphfile $+ ftos(i3, "%*.*lf", 0, 0) $+ filext;
+    graphout2 = graphfile $+ ftos(i3, "%*.*lf", 0, 0) $+ filext2;
+    graphout3 = graphfile $+ ftos(i3, "%*.*lf", 0, 0) $+ filext3;
+    
+    for i4(1, n, 1);
+        // Set grid layout
+        plotLayout(ceil(n/2), 2, i4);
+        
+        // Set y-seris
+        ySeries = ZEROS(capt, 2);
+        ySeries[., 1] = DATATOPLOT[.,n*(i3-1)+i4];
+        ySeries[., 2] = ZEROS(capt,1);
+        
+        /*
+        ** Set title for graph
+        */
+        title_str = titlevar $+ datatoplotlab[.,i3] $+ countryname[., i4];
+        plotSetTitle(&pltCtl, title_str);
+        
+        /*
+        ** Set up y-label
+        */
+        y_lab = titlevar $+ datatoplotlab[., i3] $+ countrylab[., i4];
+        plotSetYLabel(&pltCtl, y_lab);
+
+        /*
+        ** Looks like this sets legend off
+        ** _plegctl = 1;
+        ** _plegctl = 0;
+        **
+        ** _plegstr = "legend A\000legend B\000Legend C";
+        ** _plegstr = "Time Series\000Zero Line";
+        **
+        ** _plegctl = { 2 4 1 5.25 }; @This example creates a smaller legend and positions it 2.5 4 inches from the left and 1 5 inch from the bottom@
+        **
+        **  _plegstr = "Gross Domestic Investment ratio to GDP\000Gross Domestic Saving ratio to GDP";
+        */
+        plotSetLegend(&pltCtl, "off");
+        
+        // Plot graph
+        minx = minc(xseries);
+        maxx = maxc(xseries);
+        miny = minc(minc(yseries));
+        maxy = maxc(maxc(yseries));
+        xRange = { minx, maxx };
+        yRange = { miny, maxy };
+        plotSetYRange(&pltCtl, miny, maxy);
+        plotXY(pltCtl, xSeries, yseries);
+        //scalePlot(xRange, yRange);
+        
+    endfor;
+ // 1 inch = 96 pixels or 1 pixel = 0.010417 inch (1/96)
+ // 1 pixel = 0.026 cm or 1 cm = 38.46 pixels  
+    plotSave(graphout, 640|640, "px");
+    //plotSave(graphout2, 11|8.5, "in", 300);
+    plotSave(graphout2, 6.66|6.66, "in", 300);
+    //plotSave(graphout3, 640|480, "px");
+    plotSave(graphout3, 640|640, "px");
+endfor;
+
+////////////////////////////////////
+//  PLOTS TIME SERIES COMMON DATA //
+////////////////////////////////////
+plotClearLayout();
+plotOpenWindow();
+
+titlevar = "VAR: ";
+for i3c(1, series2num, 1);
+    // series2num is the number of series
+    // n is number of countries
+    
+    /*
+    ** Set up file saving names
+    */
+    graphfile =  proj$+"_var_";
+    filext = ".plot";
+    graphout = graphfile $+ ftos(i3c, "%*.*lf", 0, 0) $+ filext;
+    graphout2 = graphfile $+ ftos(i3c, "%*.*lf", 0, 0) $+ filext2;
+    graphout3 = graphfile $+ ftos(i3c, "%*.*lf", 0, 0) $+ filext3;
+    
+    // Y-series
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = DATATOPLOT2[.,n*(i3c-1)+1];
+    ySeries[., 2] = ZEROS(capt,1);
+    
+    /*
+    ** Set title
+    */
+    title_str = titlevar$+datatoplot2lab[.,i3c];
+    plotSetTitle(&pltCtl, title_str);
+    
+    /*
+    ** Set y-label
+    */
+    y_lab = titlevar$+datatoplot2lab[.,i3c];
+    plotSetYLabel(&pltCtl, y_lab);
+    
+    // Plot Series
+        minx = minc(xseries);
+        maxx = maxc(xseries);
+        miny = minc(minc(yseries));
+        maxy = maxc(maxc(yseries));
+        xRange = { minx, maxx };
+        yRange = { miny, maxy };
+    plotSetYRange(&pltCtl, miny, maxy);
+    plotXY(pltCtl, xSeries, yseries);
+    
+    // Save graph
+    plotSave(graphout, 640|440, "px");
+    plotSave(graphout2, 6.66|6.66, "in", 300);
+    plotSave(graphout3, 640|640, "px");
+endfor;
+
+
+//////////////////////
+// PLOTS RESIDUALS  //
+//////////////////////
+plotClearLayout();
+plotOpenWindow();
+
+/*
+** Set up graph to show symbols for first series
+** and line for second
+** Set line 1 to have ellipse
+** Set line 2 to have no symbol
+*/
+newSymbol = { 0, -1 };
+//symbolWidth = 5;
+symbolWidth = 1;
+plotSetLineSymbol(&pltCtl, newSymbol, symbolWidth);
+plotSetLinePen(&pltCtl, 0|8);
+plotSetLinePen(&pltCtl, 0|1);
+
+// Title string
+titleresid = "Residuals: ";
+
+/*
+** Set up file saving names
+*/
+graphfile =  proj$+"resid";
+filext = ".plot";
+graphout = graphfile$+filext;
+graphout2 = graphfile$+filext2;
+graphout3 = graphfile$+filext3;
+
+// X series
+xSeries = PERIOD;
+for i5(1, n, 1);
+    // Set grid layout
+    plotLayout(ceil(n/2), 2, i5);
+    
+    // Y - series
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = resid[.,i5];
+    ySeries[., 2] = ZEROS(capt,1);
+    
+    /*
+    ** Title
+    */
+    title_str = titleresid $+ countrylab[., i5];
+    plotSetTitle(&pltCtl, title_str);
+    
+    /*
+    ** Y - label
+    */
+    y_lab = titleresid $+ countrylab[., i5];
+    plotSetYlabel(&pltCtl, y_lab);
+    
+    // Plot graph
+        minx = minc(xseries);
+        maxx = maxc(xseries);
+        miny = minc(minc(yseries));
+        maxy = maxc(maxc(yseries));
+        xRange = { minx, maxx };
+        yRange = { miny, maxy };
+        plotSetYRange(&pltCtl, miny, maxy);
+    plotXY(xSeries, yseries);
+   
+endfor;
+
+// Save plot
+plotSave(graphout);
+plotSave(graphout2, 6.66|6.66, "in", 300);
+plotSave(graphout3, 960|960, "px");
+
+////////////////////////////////
+// PLOTS RESIDUALS VS FITTED //
+////////////////////////////////
+plotClearLayout();
+plotOpenWindow();
+/*
+** Set up graph to show symbols for first series
+** and line for second
+** Set line 1 to have ellipse
+** Set line 2 to have no symbol
+*/
+newSymbol = { 0, -1 };
+//symbolWidth = 5;
+symbolWidth = 1;
+plotSetLineSymbol(&pltCtl, newSymbol, symbolWidth);
+plotSetLinePen(&pltCtl, 0|1);
+
+// Set up title strings
+titleresidvs = "Residuals Vs Fitted values: ";
+titleresid = "Residuals: ";
+
+/*
+** Set up file saving names
+*/
+graphfile =  proj$+"residvsfit";
+filext = ".plot";
+//filext2 = ".eps";
+graphout = graphfile$+filext;
+graphout2 = graphfile$+filext2;
+graphout3 = graphfile$+filext3;
+
+//cmd_string = "-c=2 -cf=/Users/MyUserName/Documents/pqg_cos.eps";
+//cmd_string = "-cf="$+f_path$+graphout;
+//graphprt(cmd_string);
+
+// X-axis label
+x_lab = "Fitted Values";
+plotSetXLabel(&pltCtl, x_lab);
+
+// X series
+xSeriesm = aj;
+
+for i5(1, n, 1);
+    // Set grid layout
+    plotLayout(ceil(n/2), 2, i5);
+    
+    // X-series
+    xSeries = ZEROS(capt, 1);
+    xSeries = xSeriesm[.,i5];
+    
+    // Y-series
+    ySeries = ZEROS(capt, 2);
+    ySeries[., 1] = resid[.,i5];
+    ySeries[., 2] = ZEROS(capt,1);
+    
+    // XLABEL (and YLABEL and ZLABEL) provides a title for the X-axis
+    /*
+    ** Title
+    */
+    title_str = titleresidvs $+ countrylab[., i5];
+    plotSetTitle(&pltCtl, title_str);
+    
+    // Y-axis
+    y_lab = titleresid $+ countrylab[., i5];
+    plotSetYLabel(&pltCtl, y_lab);
+ 
+    // Plot graph
+        minx = minc(xseries);
+        maxx = maxc(xseries);
+        miny = minc(minc(yseries));
+        maxy = maxc(maxc(yseries));
+        xRange = { minx, maxx };
+        yRange = { miny, maxy };
+        plotSetYRange(&pltCtl, miny, maxy);
+        plotXY(pltCtl, xSeries, yseries);
+endfor;
+plotSave(graphout);
+plotSave(graphout2, 6.66|6.66, "in", 300);
+plotSave(graphout3, 640|640, "px");
+
+// Restores initial directory to main folder
+newdir = ChangeDir(initdir);

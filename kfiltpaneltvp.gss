@@ -1,0 +1,894 @@
+/*  KFILTPANELTVP.GSS 	This Draft : July 31, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from KFSEEKPANELTVP.GSS (1st) */
+
+
+/* The proc ofn(th) performs Kalman filter and evaluates likelihood function
+global variables are as follows:
+rx = dimension of state-space
+n = dimension of observation vector
+k = dimension of exogenous vector
+capt = sample size
+X0 = capt x k matrix of observations on exogenous variables
+y = capt x n matrix of observations on endogenous variables
+chsi = capt x r matrix in which the filter means (chsi t given t)
+are stored
+P  = capt x r^2 matrix in which the filter variances (P t given t)
+are stored
+*/
+/*  KFILTPANELTVP.GSS 	This Draft : July 31, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from KFSEEKPANELTVP.GSS (1st) */
+
+
+/* The proc ofn(th) performs Kalman filter and evaluates likelihood function
+global variables are as follows:
+rx = dimension of state-space
+n = dimension of observation vector
+k = dimension of exogenous vector
+capt = sample size
+X0 = capt x k matrix of observations on exogenous variables
+y = capt x n matrix of observations on endogenous variables
+chsi = capt x r matrix in which the filter means (chsi t given t)
+are stored
+P  = capt x r^2 matrix in which the filter variances (P t given t)
+are stored
+*/
+
+proc ofn(th);
+    local mua, muacol, muamat, mub, mubcol, mubmat, phi, phi1, phi2, phicol, phi1m, phi2m, phi3m, sigv, sigv1, sigv2, sigvcol, sigv1m, sigv2m, sigv3m, sigw, hac1, hac2,
+        jota1, jotav, jotam1, jotacom, jotacomv, jotacomm1, FX, Q, A, B, C, H, H1, H2, R, J, phiv, sigvv,  J1, JCOM1, J2, JCOM2, JJ, f0, diagonalm, diagonalk, diagonals, diagonalrxp,
+        diagonalrxv, diagonalrxs, diagonalkc, yhat, yvar, yvarinv, chsi10, chsi11, P10, P11, it, it2, eps, MEASDEPM1,MEASDEPM1T, MEASDEPM2, fixedp, fixedandtvp,
+        STATEDEPM1;
+ 
+    f0 = 10;
+    
+    //* FIRST READ IN PARAMETER VALUES FROM TH VECTOR *//
+    
+    // sigw =  x[1:n,1];
+    sigw = th[1:n,1];
+    
+    if k>0;
+        
+        // mua =  x[n+1:n+nn*k,1];
+        mua = th[n+1:n+nn*k,1];
+        
+        @ create a column for country-parameters @
+        
+        muacol = zeros(n*k,1);
+        
+        for i(1,n/nn,1);
+            
+            muacol[((i-1)*nn*k)+1:i*nn*k,1] = mua;
+            
+        endfor;
+        
+        @ create a  country (n) x regressors (k) matrix for parameters @
+        
+        muamat = reshape(muacol,n,k);
+        
+        diagonalk=eye(k);
+        
+    endif;
+    
+    // NEW PART OF THE CODE TO INCLUDE COMMON-MEAN PARAMETERS
+    
+    if kc>0;
+        
+        // mub =  x[n+nn*k+1:n+nn*k+kc,1];
+        mub = th[n+nn*k+1:n+nn*k+kc,1];
+        
+        @ create a column for country-parameters @
+        
+        mubcol = zeros(n*kc,1);
+        
+        for i(1,n/1,1);
+            
+            mubcol[((i-1)*1*kc)+1:i*1*kc,1] = mub;
+            
+        endfor;
+        
+        @ create a  country (n) x regressors (k) matrix for parameters @
+        
+        mubmat = reshape(mubcol,n,kc);
+        
+        diagonalkc=eye(kc);
+        
+    endif;
+    
+    if autoone $== "n";
+        
+        // phi =  x[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+        phi = th[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+        
+        phi1 = th[n+nn*k+kc+1:n+nn*k+kc+rxp*phione,1];
+        
+    else;
+        
+        phi1 = ones(rxp,1);
+        
+    endif;
+    
+    phicol = zeros(rx,1);
+    
+    phi1m = reshape(phi1,rxpk,rxpn);
+    
+    phi2m = { };
+    
+    for i1(1, n/rxpn, 1);
+        
+        phi2m = phi2m~phi1m;
+        
+    endfor;
+    
+    phi3m =  { };
+    
+    for i1(1, k1/rxpk, 1);
+        
+        phi3m = phi3m|phi2m;
+        
+    endfor;
+    
+    phicol=vec(phi3m);
+    
+    @ if there exists a common factor it must be added an aditional element to FX @
+    
+    if common $== "y";
+        
+        // I FIXED THE CODE HERE
+        //  phicol[rx,1]= phi[rxp+rx2,1];
+        
+        phicol = phicol|phi[rxp+rx2,1];
+        
+    endif;
+    
+    // sigv =  x[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    sigv = th[n+k*nn+kc+(rxp+rx2)*phione+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    
+    sigv1 = th[n+k*nn+kc+(rxp+rx2)*phione+1:n+k*nn+kc+(rxp+rx2)*phione+rxv,1];
+    
+    
+    @ create a column for sigv @
+    
+    sigvcol = zeros(rx,1);
+    
+    sigv1m = reshape(sigv1,rxvk,rxvn);
+    
+    sigv2m = { };
+    
+    for i1(1, n/rxvn, 1);
+        
+        sigv2m = sigv2m~sigv1m;
+        
+    endfor;
+    
+    sigv3m =  { };
+    
+    for i1(1, k1/rxvk, 1);
+        
+        sigv3m = sigv3m|sigv2m;
+        
+    endfor;
+    
+    sigvcol=vec(sigv3m);
+    
+    
+    @ if there exists a common factor it must be added an aditional element to Q @
+    
+    if common $== "y";
+        // I FIXED THE CODE HERE
+        // sigvcol[rx,1]= sigv[rxs+rx2,1];
+        sigvcol = sigvcol|sigv[rxp+rx2,1];
+        
+    endif;
+    
+    
+    if s>0;
+        
+        //	jota1 = th[n+k*nn+kc+(rxp+rx2)*phione+rxv+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s,1];
+        jota1 = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+        
+        @ create a J1 matrix for jota @
+        
+        
+        jotav = zeros(rx*s,1);
+        
+        for i(1,rxs*s,1);
+            
+            jotav[(i-1)*(rx1/rxs)+1:i*(rx1/rxs),1]= jota1[i,1]*ones(rx1/rxs,1);
+            
+        endfor;
+        
+        // The first s elements of JOTAM1 are put into the first row, and the sequence continues k1 times n.
+        
+        // That means the first s elements correspond to the parameters for the control imputs affecting
+        // the first k1 element with tvp for the first country (or, if common, for all countries
+        
+        JOTAM1 = reshape(jotav,k1*n,s);
+        
+        J1 = zeros(rx1,s*n);
+        
+        for i(1, n, 1);
+            
+            for i2(1, s, 1);
+                
+                J1[(i-1)*k1+1:i*k1,i+(i2-1)*n]= JOTAM1[(i-1)*k1+1:i*k1,i2];
+                
+            endfor;
+        endfor;
+        
+    endif;
+    
+    //* Added common-parameter control variables in transition equation *//
+    
+    if sc>0;
+        
+        //jotacom = th[n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc,1];
+        jotacom = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+        
+        @ create a JCOM1 matrix for jotacom @
+        
+        jotacomv = zeros(rx*sc,1);
+        
+        for i(1,rxsc*sc,1);
+            
+            jotacomv[(i-1)*(rx1/rxsc)+1:i*(rx1/rxsc),1]= jotacom[i,1]*ones(rx1/rxsc,1);
+            
+        endfor;
+        
+        JOTACOMM1 = reshape(jotacomv,k1*n,sc);
+        
+        JCOM1 = zeros(rx1,sc*n);
+        
+        for i(1, n, 1);
+            
+            for i2(1, sc, 1);
+                
+                JCOM1[(i-1)*k1+1:i*k1,i+(i2-1)*n]= JOTACOMM1[(i-1)*k1+1:i*k1,i2];
+                
+            endfor;
+        endfor;
+        
+    endif;
+    
+    // Until here
+    
+    
+    if common $== "y";
+        
+        //   hac2 = th[n+k*nn+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc+1:n+k*nn+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc+n,1];
+        hac2 = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+        
+    endif;
+    
+    
+    @ TRANSLATE TH VECTOR PARAMETER VALUES INTO STANDARD STATE-SPACE MATRICES @
+    
+    
+    diagonalm = eye(n);
+    
+    diagonals = eye(rx);
+    
+    diagonalrxp= eye(rxp);
+    
+    diagonalrxv = eye(rxv);
+    
+    diagonalrxs = eye(rxs);
+    
+    
+    @ R (n x n) - Inserts the sigw variance vector in the diagonal of the matrix @
+    
+    R = diagrv(diagonalm,sigw)^2;
+    
+    
+    // B (n x (n*k)) - matrix of IDIOSYNCRATIC fixed-parameters for regressors @
+    
+    B=0;
+    
+    if k>0;
+        
+        B = { };
+        
+        for i(1, k, 1);
+            
+            B = B~diagrv(diagonalm, muamat[.,i]);
+            
+        endfor;
+        
+    endif;
+    
+    
+    // C (n x (n*kc)) - matrix of COMMON fixed-parameters for regressors @
+    
+    C=0;
+    
+    if kc>0;
+        
+        C = { };
+        
+        for i(1, kc, 1);
+            
+            C = C~diagrv(diagonalm, mubmat[.,i]);
+            
+        endfor;
+        
+    endif;
+    
+    
+    @ FX (rx x rx) - matrix of autoregressive parameters for state-space vector @
+    
+    
+    FX = diagrv(diagonals,phicol);
+    
+    
+    @ Q (rx x rx) - Inserts the sigv variances vector in the diagonal of the matrix @
+    
+    
+    Q = diagrv(diagonals,sigvcol)^2;
+    
+    
+    
+    if s>0;
+        
+        J = J1;
+        
+    endif;
+    
+    if common $== "y" and s>0;
+        
+        J2 = zeros (1, n*s);
+        
+        J=J1|J2;
+        
+    endif;
+    
+    // PAY ATTENTION HERE
+    
+    if sc>0;
+        
+        JJ = JCOM1;
+        
+    endif;
+    
+    if common $== "y" and sc>0;
+        
+        JCOM2 = zeros (1, n*sc);
+        
+        JJ=JCOM1|JCOM2;
+        
+    endif;
+    
+    if common $== "y";
+        
+        H2=hac2;
+        
+        H = H2;
+        
+    endif;
+    
+    
+    @ set initial value for filter @
+    chsi10 = zeros(rx,1);
+    P10 = inv(eye(rx^2) - (FX .*. FX)) * vec(Q);
+    
+    P10 = reshape(P10',rx,rx);
+    if det(P10) <= 0;  @ This corrects initial variance to be robust
+        for case of explosive eigenvalues in FX @
+        P10 = 100*Q[1,1]*eye(rx);
+        P10 = reshape(P10',rx,rx);
+    endif;
+    
+    f0 = 0;   @ f0 will be the log likelihood function @
+    it = 1;  @ it will index the iteration @
+    
+    do until it > capt;
+        
+        /* y = reshape(x,r,c); - The first c elements are put into the first row of y,
+        the second in the second row, and so on */
+        
+        @ each column includes k1 regressors for one country @
+        
+        MEASDEPM1=RESHAPE(MEASDEPV[it,.],k1,n);
+        
+        @ Transposes matrix so now k1 regressors for one country are in rows @
+        
+        MEASDEPM1T = MEASDEPM1';
+        
+        @ n x rx1 STATE-SPACE matrix @
+        MEASDEPM2 = zeros(n, n*k1);
+        
+        for i(1, n, 1);
+            MEASDEPM2[i,(i-1)*k1+1:i*k1]= MEASDEPM1T[i,.];
+        endfor;
+        
+        //* if there exists a common factor it must be added an aditional column with hac2 (to be estimated) *//
+        
+        if common $== "y";
+            
+            MEASDEPM2 = MEASDEPM2~H ;
+            
+        endif;
+        
+        // HERE I NEST ALTERNATIVE MEASUREMENT EQUATION SPECIFICATIONS
+        
+        if k>0;
+            if kc>0;
+                yhat = B*MEASDEP[it,.]'  + C*MEASDEPC[it,.]'  +  MEASDEPM2 * chsi10;		@yhat =  B'*MEASDEP[it,.]' + MEASDEP[it,.] * chsi10; @
+            else;
+                yhat = B*MEASDEP[it,.]'  +  MEASDEPM2 * chsi10;
+            endif;
+        else;
+            yhat = MEASDEPM2 * chsi10;
+        endif;
+        
+        yvar = (MEASDEPM2*P10*MEASDEPM2' + R);			    @yvar = (MEASDEP[it,.]*P10*MEASDEP[it,.]' + R);@
+        
+        yvarinv = inv(yvar);
+        eps = y[it,.]' - yhat;
+        f0 = f0 - ln(det(yvar)) - eps'*yvarinv*eps;
+        
+        chsi11 = chsi10 + P10*MEASDEPM2'*yvarinv*eps;		    @chsi11 = chsi10 + P10*MEASDEP[it,.]'*yvarinv*eps;@
+        chsi[it,.] = chsi11';
+        
+        P11 = P10 - P10*MEASDEPM2'*yvarinv*MEASDEPM2*P10;	    @P11 = P10 - P10*MEASDEP[it,.]'*yvarinv*MEASDEP[it,.]*P10;@
+        
+        P[it,.] = vec(P11)';
+        
+        
+        // HERE I NEST ALTERNATIVE STATE-TRANSITION EQUATION SPECIFICATIONS
+        
+        if s>0;
+            if sc>0;
+                chsi10 = FX*chsi11 + J*STATEDEP[it,.]'+ JJ*STATEDEPC[it,.]';       @chsi10 = FX*chsi11 + J*STATEDEP[it,.]'; @
+            else;
+                chsi10 = FX*chsi11 + J*STATEDEP[it,.]';
+            endif;
+        else;
+            chsi10 = FX*chsi11;
+        endif;
+        
+        P10 = FX*P11*FX' + Q;
+        
+        aj[it,.] = yhat';
+        
+        it = it +1;
+    endo;
+    f0 = -(capt*n/2) * log(2*pi)  + f0/2;
+    
+    retp(-f0);
+endp;
+
+proc ofnmt(th, ind);
+    local mua, muacol, muamat, mub, mubcol, mubmat, phi, phi1, phi2, phicol, phi1m, phi2m, phi3m, sigv, sigv1, sigv2, sigvcol, sigv1m, sigv2m, sigv3m, sigw, hac1, hac2,
+        jota1, jotav, jotam1, jotacom, jotacomv, jotacomm1, FX, Q, A, B, C, H, H1, H2, R, J, phiv, sigvv,  J1, JCOM1, J2, JCOM2, JJ, f0, diagonalm, diagonalk, diagonals, diagonalrxp,
+        diagonalrxv, diagonalrxs, diagonalkc, yhat, yvar, yvarinv, chsi10, chsi11, P10, P11, it, it2, eps, MEASDEPM1,MEASDEPM1T, MEASDEPM2, fixedp, fixedandtvp,
+        STATEDEPM1;
+    
+    // Declare 'mm' to be a modelResults
+    // struct, local to this procedure
+    struct modelResults mm;
+    
+    f0 = 10;
+    
+    //* FIRST READ IN PARAMETER VALUES FROM TH VECTOR *//
+    
+    // sigw =  x[1:n,1];
+    sigw = th[1:n,1];
+    
+    if k>0;
+        
+        // mua =  x[n+1:n+nn*k,1];
+        mua = th[n+1:n+nn*k,1];
+        
+        @ create a column for country-parameters @
+        
+        muacol = zeros(n*k,1);
+        
+        for i(1,n/nn,1);
+            
+            muacol[((i-1)*nn*k)+1:i*nn*k,1] = mua;
+            
+        endfor;
+        
+        @ create a  country (n) x regressors (k) matrix for parameters @
+        
+        muamat = reshape(muacol,n,k);
+        
+        diagonalk=eye(k);
+        
+    endif;
+    
+    // NEW PART OF THE CODE TO INCLUDE COMMON-MEAN PARAMETERS
+    
+    if kc>0;
+        
+        // mub =  x[n+nn*k+1:n+nn*k+kc,1];
+        mub = th[n+nn*k+1:n+nn*k+kc,1];
+        
+        @ create a column for country-parameters @
+        
+        mubcol = zeros(n*kc,1);
+        
+        for i(1,n/1,1);
+            
+            mubcol[((i-1)*1*kc)+1:i*1*kc,1] = mub;
+            
+        endfor;
+        
+        @ create a  country (n) x regressors (k) matrix for parameters @
+        
+        mubmat = reshape(mubcol,n,kc);
+        
+        diagonalkc=eye(kc);
+        
+    endif;
+    
+    if autoone $== "n";
+        
+        // phi =  x[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+        phi = th[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+        
+        phi1 = th[n+nn*k+kc+1:n+nn*k+kc+rxp*phione,1];
+        
+    else;
+        
+        phi1 = ones(rxp,1);
+        
+    endif;
+    
+    phicol = zeros(rx,1);
+    
+    phi1m = reshape(phi1,rxpk,rxpn);
+    
+    phi2m = { };
+    
+    for i1(1, n/rxpn, 1);
+        
+        phi2m = phi2m~phi1m;
+        
+    endfor;
+    
+    phi3m =  { };
+    
+    for i1(1, k1/rxpk, 1);
+        
+        phi3m = phi3m|phi2m;
+        
+    endfor;
+    
+    phicol=vec(phi3m);
+    
+    @ if there exists a common factor it must be added an aditional element to FX @
+    
+    if common $== "y";
+        
+        // I FIXED THE CODE HERE
+        //  phicol[rx,1]= phi[rxp+rx2,1];
+        
+        phicol = phicol|phi[rxp+rx2,1];
+        
+    endif;
+    
+    // sigv =  x[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    sigv = th[n+k*nn+kc+(rxp+rx2)*phione+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    
+    sigv1 = th[n+k*nn+kc+(rxp+rx2)*phione+1:n+k*nn+kc+(rxp+rx2)*phione+rxv,1];
+    
+    
+    @ create a column for sigv @
+    
+    sigvcol = zeros(rx,1);
+    
+    sigv1m = reshape(sigv1,rxvk,rxvn);
+    
+    sigv2m = { };
+    
+    for i1(1, n/rxvn, 1);
+        
+        sigv2m = sigv2m~sigv1m;
+        
+    endfor;
+    
+    sigv3m =  { };
+    
+    for i1(1, k1/rxvk, 1);
+        
+        sigv3m = sigv3m|sigv2m;
+        
+    endfor;
+    
+    sigvcol=vec(sigv3m);
+    
+    
+    @ if there exists a common factor it must be added an aditional element to Q @
+    
+    if common $== "y";
+        // I FIXED THE CODE HERE
+        // sigvcol[rx,1]= sigv[rxs+rx2,1];
+        sigvcol = sigvcol|sigv[rxp+rx2,1];
+        
+    endif;
+    
+    
+    if s>0;
+        
+        //	jota1 = th[n+k*nn+kc+(rxp+rx2)*phione+rxv+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s,1];
+        jota1 = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+        
+        @ create a J1 matrix for jota @
+        
+        
+        jotav = zeros(rx*s,1);
+        
+        for i(1,rxs*s,1);
+            
+            jotav[(i-1)*(rx1/rxs)+1:i*(rx1/rxs),1]= jota1[i,1]*ones(rx1/rxs,1);
+            
+        endfor;
+        
+        // The first s elements of JOTAM1 are put into the first row, and the sequence continues k1 times n.
+        
+        // That means the first s elements correspond to the parameters for the control imputs affecting
+        // the first k1 element with tvp for the first country (or, if common, for all countries
+        
+        JOTAM1 = reshape(jotav,k1*n,s);
+        
+        J1 = zeros(rx1,s*n);
+        
+        for i(1, n, 1);
+            
+            for i2(1, s, 1);
+                
+                J1[(i-1)*k1+1:i*k1,i+(i2-1)*n]= JOTAM1[(i-1)*k1+1:i*k1,i2];
+                
+            endfor;
+        endfor;
+        
+    endif;
+    
+    //* Added common-parameter control variables in transition equation *//
+    
+    if sc>0;
+        
+        //jotacom = th[n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s+1:n+k*nn+kc+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc,1];
+        jotacom = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+        
+        @ create a JCOM1 matrix for jotacom @
+        
+        jotacomv = zeros(rx*sc,1);
+        
+        for i(1,rxsc*sc,1);
+            
+            jotacomv[(i-1)*(rx1/rxsc)+1:i*(rx1/rxsc),1]= jotacom[i,1]*ones(rx1/rxsc,1);
+            
+        endfor;
+        
+        JOTACOMM1 = reshape(jotacomv,k1*n,sc);
+        
+        JCOM1 = zeros(rx1,sc*n);
+        
+        for i(1, n, 1);
+            
+            for i2(1, sc, 1);
+                
+                JCOM1[(i-1)*k1+1:i*k1,i+(i2-1)*n]= JOTACOMM1[(i-1)*k1+1:i*k1,i2];
+                
+            endfor;
+        endfor;
+        
+    endif;
+    
+    // Until here
+    
+    
+    if common $== "y";
+        
+        //   hac2 = th[n+k*nn+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc+1:n+k*nn+(rxp+rx2)*phione+rxv+rxs*s+rxsc*sc+n,1];
+        hac2 = th[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+        
+    endif;
+    
+    
+    @ TRANSLATE TH VECTOR PARAMETER VALUES INTO STANDARD STATE-SPACE MATRICES @
+    
+    
+    diagonalm = eye(n);
+    
+    diagonals = eye(rx);
+    
+    diagonalrxp= eye(rxp);
+    
+    diagonalrxv = eye(rxv);
+    
+    diagonalrxs = eye(rxs);
+    
+    
+    @ R (n x n) - Inserts the sigw variance vector in the diagonal of the matrix @
+    
+    R = diagrv(diagonalm,sigw)^2;
+    
+    
+    // B (n x (n*k)) - matrix of IDIOSYNCRATIC fixed-parameters for regressors @
+    
+    B=0;
+    
+    if k>0;
+        
+        B = { };
+        
+        for i(1, k, 1);
+            
+            B = B~diagrv(diagonalm, muamat[.,i]);
+            
+        endfor;
+        
+    endif;
+    
+    
+    // C (n x (n*kc)) - matrix of COMMON fixed-parameters for regressors @
+    
+    C=0;
+    
+    if kc>0;
+        
+        C = { };
+        
+        for i(1, kc, 1);
+            
+            C = C~diagrv(diagonalm, mubmat[.,i]);
+            
+        endfor;
+        
+    endif;
+    
+    
+    @ FX (rx x rx) - matrix of autoregressive parameters for state-space vector @
+    
+    
+    FX = diagrv(diagonals,phicol);
+    
+    
+    @ Q (rx x rx) - Inserts the sigv variances vector in the diagonal of the matrix @
+    
+    
+    Q = diagrv(diagonals,sigvcol)^2;
+    
+    
+    
+    if s>0;
+        
+        J = J1;
+        
+    endif;
+    
+    if common $== "y" and s>0;
+        
+        J2 = zeros (1, n*s);
+        
+        J=J1|J2;
+        
+    endif;
+    
+    // PAY ATTENTION HERE
+    
+    if sc>0;
+        
+        JJ = JCOM1;
+        
+    endif;
+    
+    if common $== "y" and sc>0;
+        
+        JCOM2 = zeros (1, n*sc);
+        
+        JJ=JCOM1|JCOM2;
+        
+    endif;
+    
+    if common $== "y";
+        
+        H2=hac2;
+        
+        H = H2;
+        
+    endif;
+    
+    
+    @ set initial value for filter @
+    chsi10 = zeros(rx,1);
+    P10 = inv(eye(rx^2) - (FX .*. FX)) * vec(Q);
+    
+    P10 = reshape(P10',rx,rx);
+    if det(P10) <= 0;  @ This corrects initial variance to be robust
+        for case of explosive eigenvalues in FX @
+        P10 = 100*Q[1,1]*eye(rx);
+        P10 = reshape(P10',rx,rx);
+    endif;
+    
+    f0 = 0;   @ f0 will be the log likelihood function @
+    it = 1;  @ it will index the iteration @
+    
+    do until it > capt;
+        
+        /* y = reshape(x,r,c); - The first c elements are put into the first row of y,
+        the second in the second row, and so on */
+        
+        @ each column includes k1 regressors for one country @
+        
+        MEASDEPM1=RESHAPE(MEASDEPV[it,.],k1,n);
+        
+        @ Transposes matrix so now k1 regressors for one country are in rows @
+        
+        MEASDEPM1T = MEASDEPM1';
+        
+        @ n x rx1 STATE-SPACE matrix @
+        MEASDEPM2 = zeros(n, n*k1);
+        
+        for i(1, n, 1);
+            MEASDEPM2[i,(i-1)*k1+1:i*k1]= MEASDEPM1T[i,.];
+        endfor;
+        
+        //* if there exists a common factor it must be added an aditional column with hac2 (to be estimated) *//
+        
+        if common $== "y";
+            
+            MEASDEPM2 = MEASDEPM2~H ;
+            
+        endif;
+        
+        // HERE I NEST ALTERNATIVE MEASUREMENT EQUATION SPECIFICATIONS
+        
+        if k>0;
+            if kc>0;
+                yhat = B*MEASDEP[it,.]'  + C*MEASDEPC[it,.]'  +  MEASDEPM2 * chsi10;		@yhat =  B'*MEASDEP[it,.]' + MEASDEP[it,.] * chsi10; @
+            else;
+                yhat = B*MEASDEP[it,.]'  +  MEASDEPM2 * chsi10;
+            endif;
+        else;
+            yhat = MEASDEPM2 * chsi10;
+        endif;
+        
+        yvar = (MEASDEPM2*P10*MEASDEPM2' + R);			    @yvar = (MEASDEP[it,.]*P10*MEASDEP[it,.]' + R);@
+        
+        yvarinv = inv(yvar);
+        eps = y[it,.]' - yhat;
+        f0 = f0 - ln(det(yvar)) - eps'*yvarinv*eps;
+        
+        chsi11 = chsi10 + P10*MEASDEPM2'*yvarinv*eps;		    @chsi11 = chsi10 + P10*MEASDEP[it,.]'*yvarinv*eps;@
+        chsi[it,.] = chsi11';
+        
+        P11 = P10 - P10*MEASDEPM2'*yvarinv*MEASDEPM2*P10;	    @P11 = P10 - P10*MEASDEP[it,.]'*yvarinv*MEASDEP[it,.]*P10;@
+        
+        P[it,.] = vec(P11)';
+        
+        
+        // HERE I NEST ALTERNATIVE STATE-TRANSITION EQUATION SPECIFICATIONS
+        
+        if s>0;
+            if sc>0;
+                chsi10 = FX*chsi11 + J*STATEDEP[it,.]'+ JJ*STATEDEPC[it,.]';       @chsi10 = FX*chsi11 + J*STATEDEP[it,.]'; @
+            else;
+                chsi10 = FX*chsi11 + J*STATEDEP[it,.]';
+            endif;
+        else;
+            chsi10 = FX*chsi11;
+        endif;
+        
+        P10 = FX*P11*FX' + Q;
+        
+        aj[it,.] = yhat';
+        
+        it = it +1;
+    endo;
+    f0 = -(capt*n/2) * log(2*pi)  + f0/2;
+    
+    // If the first element of the indicator vector
+    // is non-zero, calculate the objective function
+    if ind[1];
+        mm.function = -f0;
+    endif;
+    
+    retp(mm);
+endp;

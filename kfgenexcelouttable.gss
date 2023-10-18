@@ -1,0 +1,251 @@
+/*  KFGENEXCELOUTTABLE.GSS 	This Draft : July 31, 2023 */
+
+/* This file doesn't need to be adapted to particular implementations
+// This file is called from KFSEEKPANELTVP.GSS (2nd) */
+
+"Estimated Hyperparameters:";
+
+// https://www.aptech.com/questions/saving-data-to-excel/
+
+// x';
+// std';
+// tstat';
+  
+
+sigwlabel = "sigw";
+stdlabel = "std";
+mualabel = "mua";
+mublabel = "mub";
+philabel = "phi";
+sigvlabel = "sigv";
+jota1label = "jota1";
+jotacomlabel = "jotacom";
+hac2label = "hac2";
+
+cold = "C";
+coll = "B";
+inirow = 3;
+currentrow = inirow;
+currentrow2 = inirow+1;
+
+// COUNTRY-SPECIFIC FIXED PARAMETER REGRESSORS (k)
+
+if k>0;
+
+    mua = x[n+1:n+nn*k,1];
+    stdmua = std[n+1:n+nn*k,1];
+    tstatmua = tstat[n+1:n+nn*k,1];
+
+    muastdmua = mua~stdmua;
+    vecrmuastdmua = vecr(muastdmua);
+      
+    muastdmuamat = reshape(vecrmuastdmua, nn, 2*k);
+    muastdmuamatt=muastdmuamat';
+
+// "";"mua:";;mua;
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+    xlsWritesa (mualabel, excelout, celll, 3, "");    
+    xlsWrite (muastdmuamatt, excelout, celld, 3, 0);
+
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");    
+
+currentrow = currentrow + 2*k +1;
+currentrow2 = currentrow2 + 2*k +1;
+
+else;
+ 
+endif;
+
+// COMMON FIXED PARAMETER REGRESSORS (kc)
+
+if kc>0;
+
+    mub = x[n+nn*k+1:n+nn*k+kc,1];
+    stdmub = std[n+nn*k+1:n+nn*k+kc,1];
+    tstatmub = tstat[n+nn*k+1:n+nn*k+kc,1];
+
+    mubstdmub = mub~stdmub;
+    mubstdmubmat = reshape(mubstdmub, kc*2, 1);
+
+//    "";"mub:";;mub;
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+    
+    xlsWritesa (mublabel, excelout, celll, 3, "");
+    xlsWrite (mubstdmubmat, excelout, celld, 3, 0); 
+
+    xlsWritesa (stdlabel, excelout, celll2, 3, ""); 
+
+currentrow = currentrow + 2*kc +1;
+currentrow2 = currentrow2 + 2*kc +1; 
+
+else;
+
+endif;
+
+if common $== "y";
+    
+    hac2 = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+    stdhac2 = std[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+    tstathac2 = tstat[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc+n,1];
+
+ //   "";"hac2:";;hac2;
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+
+
+    xlsWritesa (hac2label, excelout, celll, 3, "");
+    xlsWrite (hac2', excelout, celld, 3, 0);    
+    
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");
+    xlsWrite (stdhac2', excelout, celld2, 3, 0);
+//  xlsWrite (tstathac2', excelout, "c23", 3, 0);
+
+currentrow = currentrow + 2*1 +1;
+currentrow2 = currentrow2 + 2*1 +1;
+
+else;
+
+endif;
+
+sigw = x[1:n,1];
+stdsigw = std[1:n,1];   
+tstatsigw = tstat[1:n,1];
+
+// "";"sigw:";;sigw;
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+    xlsWritesa (sigwlabel, excelout, celll, 3, "");
+    xlsWrite (sigw', excelout, celld, 3, 0);    
+    
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");
+    xlsWrite (stdsigw', excelout, celld2, 3, 0);
+//  xlsWrite (tstatsigw', excelout, "c14", 3, 0);
+
+currentrow = currentrow + 2*1 +1;
+currentrow2 = currentrow2 + 2*1 +1; 
+
+
+if autoone $== "n";                                    
+
+    phi = x[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+    stdphi = std[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+    tstatphi = tstat[n+nn*k+kc+1:n+nn*k+kc+(rxp+rx2)*phione,1];
+
+//   "";"phi:";;phi;
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+
+    xlsWritesa (philabel, excelout, celll, 3, "");
+    xlsWrite (phi', excelout, celld, 3, 0);    
+    
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");
+    xlsWrite (stdphi', excelout, celld2, 3, 0);
+//  xlsWrite (tstatphi', excelout, "c17", 3, 0);
+
+currentrow = currentrow + 2*1 +1;
+currentrow2 = currentrow2 + 2*1 +1;
+
+else;
+
+endif;
+
+
+if s>0; 
+
+	jota1 = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+    stdjota1 = std[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+    tstatjota1 = tstat[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s,1];
+
+    jota1stdjota1 = jota1~stdjota1;
+    vecrjota1stdjota1 = vecr(jota1stdjota1);
+
+    jota1stdjota1mat = reshape(jota1stdjota1, rxs, s*2);
+    jota1stdjota1matt=jota1stdjota1mat';
+
+ //   "";"jota1:";;jota1;
+    
+    celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+    celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+    celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+    celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+    xlsWritesa (jota1label, excelout, celll, 3, "");    
+    xlsWrite (jota1stdjota1matt, excelout, celld, 3, 0);
+
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");    
+
+//  xlsWrite (tstatjota1', excelout, "c20", 3, 0);
+
+currentrow = currentrow + 2*s +1;
+currentrow2 = currentrow2 + 2*s +1;
+
+else;
+
+endif;
+
+if sc>0; 
+
+	jotacom = x[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+    stdjotacom = std[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+    tstatjotacom = tstat[n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2+rxs*s+rxsc*sc,1];
+
+    jotacomstdjotacom = jotacom~stdjotacom;
+    jotacomstdjotacommat = reshape(jotacomstdjotacom, sc*2, 1);
+
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+ //   "";"jotacom:";;jotacom;
+
+    xlsWritesa (jotacomlabel, excelout, celll, 3, "");
+    xlsWrite (jotacomstdjotacommat, excelout, celld, 3, 0);    
+    
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");
+//  xlsWrite (tstatjotacom, excelout, "c23", 3, 0);
+
+currentrow = currentrow + 2*sc +1;
+currentrow2 = currentrow2 + 2*sc +1; 
+
+endif;
+
+
+    sigv = x[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    stdsigv = std[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+    tstatsigv = tstat[n+nn*k+kc+(rxp+rx2)*phione+1:n+nn*k+kc+(rxp+rx2)*phione+rxv+rx2,1];
+
+//    "";"sigv:";;sigv;
+celll = coll$+ftos(currentrow, "%*.*lf", 0, 0);
+celll2 = coll$+ftos(currentrow2, "%*.*lf", 0, 0);
+celld = cold$+ftos(currentrow, "%*.*lf", 0, 0);
+celld2 = cold$+ftos(currentrow2, "%*.*lf", 0, 0);
+
+
+    xlsWritesa (sigvlabel, excelout, celll, 3, "");
+    xlsWrite (sigv', excelout, celld, 3, 0);
+    xlsWritesa (stdlabel, excelout, celll2, 3, "");
+    xlsWrite (stdsigv', excelout, celld2, 3, 0);
+
+//  xlsWrite (tstatsigv', excelout, "c26", 3, 0);
+
