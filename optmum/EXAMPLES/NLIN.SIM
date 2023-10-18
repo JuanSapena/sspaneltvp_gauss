@@ -1,0 +1,41 @@
+/*
+** NLIN.SIM
+** (C) Copyright 1988-1992 by Aptech Systems, Inc.
+** All Rights Reserved.
+**
+**   This command file generates a data set for OPT*.E
+**   and MAX6.E.  The model is:
+**
+**      Y = C0 + C1*EXP(-C3*T)
+**
+*/
+
+cls;
+print "NLIN.SIM - nonlinear equation simulation program";
+print;
+print "model:  y = c[1] * exp(-c[3]*t)";
+print;
+print "  How large a sample do you want to use";;
+nobs = con(1,1);
+print;
+
+
+@ -- coefficients -- @
+c = { 0.8, .2 };
+
+seed = 23456567;
+
+t = seqa(0,1,nobs);
+
+e = rndn(nobs,1);      @ prediction error @
+
+y = c[1] * exp(-c[2]*t) + e;
+
+z = y~t;
+
+if saved(z,"NLIN","Y"|"T");
+  print ("file NLIN.DAT created");
+else;
+  print "attempt to save file failed";
+endif;
+end;

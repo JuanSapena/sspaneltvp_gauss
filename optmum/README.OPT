@@ -1,0 +1,87 @@
+***************************************************************************
+                      Optimization Release Notes
+***************************************************************************
+
+
+The OPTMUM manual is inaccruate with respect to the use of the Richardson
+Extrapolation method for numerical gradients.  The documentation states
+that you set _opgdmd = 2 for this method.  However, this causes OPTMUM to
+crash.  
+
+The Richardson Extrapolation method is now implemented as a user-defined
+numerical method.  Thus to invoke this method set
+
+   _opusrgd = &gradre;
+
+This will causs OPTMUM to use the GRADRE proc in gradient.src for computing
+the numerical derivatives.  GRADRE is an implementation of the Richardson
+Extrapolation method.  
+
+
+Internal changes were made to OPTMUM to improve its efficiency.  The 
+changes are transparent to the user, with the exception of the loss of
+a global, _opcoef.  This global contained the current vector of the
+estimates and was used to retrieve current values when OPTMUM crashed.
+The existence of the global interfered with the recursive operation of
+OPTMUM, however, and had to be removed.  To retrieve current values of
+the coefficients, gradient, or Hessian in the event of an unanticipated
+interruption of the optimization, follow the directions in the 
+comments around line 315 of the file optutil.src in your $GAUSSHOME/src
+directory.  Search for "DIAGNOSTIC".  This method is also useful for
+printing out the function, gradient, Hessian, and/or coefficients for
+debugging purposes.
+
+
+***************************************************************************
+                      OPTMUM  Version 3.1.2  3-23-93
+***************************************************************************
+
+Requires GAUSS 3.1.0 or greater.  New version numbering system
+implemented.  Unix code differences now are implemented using
+the #ifUNIX compiler switch.
+
+OPTMUM now has the capability for a user-provided numerical gradient
+and Hessian.  This function has three input arguments, a pointer
+to the log-likelhood function, a Px1 vector of parameters, and
+an NxK data matrix.  It returns an NxP matrix of derivatives of
+each row of the data matrix with respect to each parameter.  
+
+The calculation of numerical derivatives by Richardson
+extrapolation is now implemented as a user-provided function.
+The source code for this function, GRADRE, is in GRADIENT.SRC
+which is included with the OPTMUM source code files.  To use
+this procedure add
+
+    #include gradient.ext;
+
+at the top of the command file, and add
+
+    _opgrdhs = &gradre;
+
+after any call to OPTSET, and before the call to OPTMUM.
+
+
+Examples
+--------
+OPT1.E
+OPT2.E
+OPT3.E
+OPT4.E
+OPT5.E
+OPT6.E
+OPT7.E
+
+Bugs Fixed
+----------
+
+Bug ID 00030:   Error with switching step methods
+    
+    If you set _opdfct to switch when a certain condition is met
+    or try switching the step algarythm by pressing alt-a, then 
+    you will get the following error:
+    
+       \src\optmum.src(361) error G0036 : Matrices are not
+       conformable currently active call: _optmum [361]
+    
+    This has been fixed.
+
