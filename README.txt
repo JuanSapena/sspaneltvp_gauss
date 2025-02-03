@@ -1,4 +1,4 @@
-# kf_paneltvp
+# sspaneltvp
 
 This code performs time-varying parameter estimation for panel time series models using Kalman filter algorithm.
 
