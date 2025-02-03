@@ -21,6 +21,10 @@ library optmt, optmum, pgraph;
 
 graphset;
 
+////////////////////////////////////////////////////////////////////////////////////////////
+// INDICATE IF USING OPTMT (new package) OR OPTMUM (former package for old Gauss versions //
+////////////////////////////////////////////////////////////////////////////////////////////
+
 // Specify whether to use optmt or optmum
 __opt_mt = 1;
 
@@ -42,14 +46,8 @@ cellid = xlsMakeRange(row, col);
 /* ======================================================================= */
 /* Replace this first section with a section to read in your data          */
 
-////////////////////////////////////////////////////////////////
-// FIRST SPECIFY MAIN ELEMENTS FOR THE MODEL FROM THE CONSOLE //
-////////////////////////////////////////////////////////////////
-
-// #include consolepaneltvp.gss;
-
 //////////////////////////////////////////
-// THEN READ DATA FROM INPUT EXCEL FILE //
+// READ DATA FROM INPUT EXCEL FILE 	//
 //////////////////////////////////////////
 
 #include xlsreadpaneldata.gss;
