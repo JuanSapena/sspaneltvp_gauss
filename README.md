@@ -11,7 +11,7 @@ To execute the code a numerical optimizer is required. Two options:
 - OPTMT, Gauss numerical optimizer (that can be purchased from Aptech webpage)
 - OPTMUM, a former numerical optimizer (included in the bundle).
 
-NOTE: RESEARCHERS NEEDING ASSISTANCE FOR IMPLEMENTATING THE CODE TO OTHER MODELS ARE WELCOME TO ASK FOR HELP TO: juan.sapena@ucv.es
+NOTE: SHOULD YOU NEED ANY ASSISTANCE, PLEASE REFER TO: juan.sapena@ucv.es
 
 Files included:
 
@@ -19,7 +19,7 @@ Files included:
 It is the main file to be EXECUTED for a particular project.
 
 The file needs to be adapted to the project to particularise the following issues:
-1. Indicate the numerical optimizer installed. 
+1. Indicate the numerical optimizer installed.
 For '__opt_mt = 1', OPTMT is required, else the code expects OPTMUM package installed.
 2. Indicate the project name
 3. Data transformation (if needed).
@@ -46,12 +46,12 @@ In this version, the file still needs to be sligtly adapted to the project to fi
 **mainpaneltvp.gss** also includes optional elements in:
 
 ## (4) datasplitnegpos.gss (optional)
-This piece code splits a single variable into two, by separating negative and positive values of the original. 
+This piece code splits a single variable into two, by separating negative and positive values of the original.
 This can be useful for detecting assymmetric coefficients.
 It also permits any split other than zero cut line.
 
 ## (5) gen_purinputdata,gss (optional)
-This simple piece code generates an excel file containing the data to be be used to perform Bai and Carrion (2009) PUR tests. 
+This simple piece code generates an excel file containing the data to be be used to perform Bai and Carrion (2009) PUR tests.
 
 The main file **mainpaneltvp.gss** also invokes the following (mandatory) files that don't need to be adapted:
 
@@ -65,9 +65,9 @@ and finally calls **kfgraphpaneltvp.gss** to generate plots.
 It invokes **kfiltpaneltvp.gss** to run the KF algorithm for the model, stores estimated time-varying parameters and hyperparameters,
 and finally calls **kfgraphpaneltvp.gss** to generate plots.
 
-## (7) kfiltpaneltvp.gss 
+## (7) kfiltpaneltvp.gss
 This file is invoked by **kfseekpaneltvp.gss** or **kfseekpaneltvp_mod.gss** to run the kalman filter algorithm. It doesn't need to be adapted.  
- 
+
 ## (8a) kfgrappaneltvp.gss
 This file is also invoked from **kfseekpaneltvp.gss** and plots output graphics. It doesn't need to be adapted.
 
